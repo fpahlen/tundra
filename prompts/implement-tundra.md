@@ -18,20 +18,23 @@ Always follow the definition and rules in `README.md` (the Tundra definition).
 ## What you must produce
 
 1. **Implementation code**
-   - Explicit representation of States (enum or equivalent)
+   - **Roles as first-class actors** — process functions take an actor (Role) parameter or equivalent; role Contracts are enforced, not commented
+   - **One state representation per subject** — if the model has “Hours are …” and “Invoice is …”, do **not** collapse them into a single mega-enum; use separate enums/fields
    - One function/method per Process
+   - Map **Actor / Requires / Results** into guards and return values
    - Contracts checked explicitly and fail fast (raise a clear domain exception or equivalent)
+   - Error messages should quote the Contract text from the model whenever a Contract is broken
    - No external libraries unless the human explicitly requests them
    - Keep the mapping from Tundra concepts to code obvious and readable
 
 2. **Executable Scenarios / Tests**
-   - One test (or executable function) for each Scenario in the model
+   - One test (or executable function) for **each** Scenario in the model — happy path **and** error paths
    - Happy-path Scenarios must pass
-   - Error Scenarios must demonstrate that the correct Contract is violated
+   - Error Scenarios must demonstrate that the correct Contract is broken (or applied, for automatic rules)
    - Tests should be readable by a non-programmer who knows the original Scenario
 
 3. **Minimal supporting notes** (only if useful)
-   - Short comment at the top of the main file explaining that this code was generated from a Tundra model
+   - Short comment at the top of the main file explaining that this code implements a Tundra model (path to the `.tundra` file)
    - Any important mapping decisions
 
 ---
@@ -43,18 +46,23 @@ Always follow the definition and rules in `README.md` (the Tundra definition).
 
 2. Contracts are sacred.  
    Every Contract that can be checked in code must be checked.  
-   Fail fast and with a clear message that maps back to the Contract text.
+   Fail fast and with a clear message that maps back to the Contract text.  
+   Do not attach the wrong Contract string to a check.
 
-3. Prefer simplicity and clarity over cleverness.  
+3. Roles are not decoration.  
+   If a Contract says “Only the Manager may…”, reject the wrong actor.
+
+4. Prefer simplicity and clarity over cleverness.  
    The generated code should be easy for a human to read and compare with the original model.
 
-4. Keep the code thin.  
+5. Keep the code thin.  
    Only implement what the model actually describes.
 
-5. Name things consistently with the model  
+6. Name things consistently with the model  
    (Role names, State names, Process names).
 
-6. If the model is incomplete or inconsistent, stop and report the problems instead of guessing.
+7. If the model is incomplete, inconsistent, or uses Contracts too vague to implement,  
+   stop and report the problems instead of guessing.
 
 ---
 

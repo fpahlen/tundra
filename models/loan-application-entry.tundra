@@ -3,6 +3,7 @@ Tundra: Loan application entry and credit decision
   Roles:
     - Applicant
     - Loan Officer
+    - System
 
   Contracts:
     - The Applicant must successfully identify with Swedish BankID to create an account and start a loan application
@@ -27,13 +28,33 @@ Tundra: Loan application entry and credit decision
 
   Processes:
     - Start application with BankID
+        Actor: Applicant
+        Requires: Application is Not started
+        Results: Application is BankID in progress
     - Complete BankID identification
+        Actor: Applicant
+        Requires: Application is BankID in progress
+        Results: Application is Credit check required
     - Fail BankID identification
+        Actor: System
+        Requires: Application is BankID in progress
+        Results: Application is Automatically declined
     - Perform or reuse UC credit check
+        Actor: System
+        Requires: Application is Credit check required
+        Results: Application is Credit check completed
     - Make automatic credit decision
-    - Send to Loan Officer for review
+        Actor: System
+        Requires: Application is Credit check completed
+        Results: Application is Automatically approved; or Application is Automatically declined; or Application is Pending Loan Officer review
     - Loan Officer approves
+        Actor: Loan Officer
+        Requires: Application is Pending Loan Officer review
+        Results: Application is Approved by Loan Officer
     - Loan Officer declines
+        Actor: Loan Officer
+        Requires: Application is Pending Loan Officer review
+        Results: Application is Declined by Loan Officer
 
   Scenario: Happy path – low risk applicant is automatically approved
     Given the Application is Not started
@@ -48,6 +69,7 @@ Tundra: Loan application entry and credit decision
 
     When the requested loan is low relative to income and there are no missed payments
     Then the Application is Automatically approved
+    And the contract "If the requested loan is low relative to the Applicant’s income and the Applicant has no missed payments, the application is automatically approved" is applied
 
   Scenario: Error – BankID identification fails
     Given the Application is BankID in progress

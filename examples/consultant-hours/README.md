@@ -1,33 +1,46 @@
 # Example: Consultant hours to client invoice
 
-This folder contains a complete Tundra model and two thin implementations of its happy-path Scenario.
+Thin reference implementations of the canonical Tundra model.
+
+**Source of truth:** [`../../models/consultant-hours-invoice.tundra`](../../models/consultant-hours-invoice.tundra)
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `consultant-hours-invoice.tundra` | The Tundra model (source of truth) |
-| `happy_path.py` | Python implementation of the happy-path Scenario |
-| `happy_path.c` | ANSI C implementation of the same Scenario |
+| `demo.py` | Python: Roles, per-subject state, Contracts, three Scenarios |
+| `demo.c` | ANSI C twin of the same Scenarios |
 
-## Run the examples
+Older `happy_path.py` / `happy_path.c` names are replaced by `demo.py` / `demo.c`.
+
+## What this demonstrates
+
+- **Roles** are first-class (actor parameter on every Process)
+- **Hours** and **Invoice** are separate state machines (subject named in the model)
+- **Contracts** fail fast with the Contract text from the model
+- **Error Scenarios** show `contract … is broken` behaviour in code
+
+## Run
 
 **Python**
 ```bash
-python happy_path.py
+python3 demo.py              # all scenarios
+python3 demo.py happy
+python3 demo.py error-edit
+python3 demo.py error-invoice
 ```
 
 **C**
 ```bash
-cc -o happy_path happy_path.c
-./happy_path
+cc -o demo demo.c
+./demo                      # all scenarios
+./demo happy
+./demo error-edit
+./demo error-invoice
 ```
 
-Both programs walk the same path:
+## Scenarios
 
-1. Register Hours → Hours are in Draft  
-2. Submit Hours → Hours are Submitted  
-3. Create Invoice → Invoice is Open  
-4. Approve Invoice → Invoice is Approved  
-
-and print the state after each step. Contract violations fail fast with a clear message.
+1. **Happy path** — Register → Submit → Create Invoice → Approve  
+2. **Error: edit after submit** — Consultant cannot edit Submitted hours  
+3. **Error: wrong role creates invoice** — Only the Manager may create an invoice  

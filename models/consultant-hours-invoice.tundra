@@ -15,17 +15,36 @@ Tundra: Consultant hours to client invoice
   States:
     - Hours are in Draft
     - Hours are Submitted
+    - Hours are Invoiced
     - Invoice is Open
     - Invoice is Approved
     - Invoice is Disputed
 
   Processes:
     - Register Hours
+        Actor: Consultant
+        Requires: no hours exist
+        Results: Hours are in Draft
     - Edit Hours
+        Actor: Consultant
+        Requires: Hours are in Draft
+        Results: Hours are in Draft
     - Submit Hours
+        Actor: Consultant
+        Requires: Hours are in Draft
+        Results: Hours are Submitted
     - Create Invoice
+        Actor: Manager
+        Requires: Hours are Submitted
+        Results: Invoice is Open; Hours are Invoiced
     - Approve Invoice
+        Actor: Client
+        Requires: Invoice is Open
+        Results: Invoice is Approved
     - Dispute Invoice
+        Actor: Client
+        Requires: Invoice is Open
+        Results: Invoice is Disputed
 
   Scenario: Happy path – hours submitted and invoice approved
     Given no hours exist
@@ -38,6 +57,7 @@ Tundra: Consultant hours to client invoice
 
     When the Manager creates an invoice from the submitted hours
     Then the Invoice is Open
+    And the Hours are Invoiced
 
     When the Client approves the invoice
     Then the Invoice is Approved
@@ -48,3 +68,10 @@ Tundra: Consultant hours to client invoice
     Then the edit is rejected
     And the Hours remain Submitted
     And the contract "Hours may be edited by the Consultant only while they are in Draft" is broken
+
+  Scenario: Error – Consultant tries to create an invoice
+    Given the Hours are Submitted
+    When the Consultant tries to create an invoice
+    Then invoice creation is rejected
+    And the Hours remain Submitted
+    And the contract "Only the Manager may create an invoice" is broken

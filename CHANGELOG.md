@@ -1,0 +1,26 @@
+# Changelog
+
+## v1.1
+
+Promotable methodology pack.
+
+### Format
+
+- Processes gain light structure: **Actor**, **Requires**, **Results**
+- Scenario vocabulary documented: `is broken` vs `is applied`
+- README rewritten: pitch, why now, mapping to code, prompt pack index, roadmap
+
+### Models
+
+- `consultant-hours-invoice.tundra` upgraded (Process structure, Hours are Invoiced, extra error Scenario)
+- `loan-application-entry.tundra` upgraded with Process structure; **vague Contracts kept on purpose** as a `validate-tundra` specimen
+- Removed duplicate model under `examples/consultant-hours/`
+
+### Examples
+
+- Replaced happy-path-only demos with `demo.py` / `demo.c`
+- Roles, per-subject state, correct Contract checks, three Scenarios
+
+### Prompts
+
+- extract / implement / validate aligned with light structure, Roles in code, and testability gates

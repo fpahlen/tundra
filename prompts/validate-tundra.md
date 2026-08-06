@@ -17,31 +17,46 @@ Always follow the definition, rules, examples and counter-examples in `README.md
 ## What you must check
 
 ### 1. Testability of Contracts
-- Flag any Contract that uses vague language (“too high”, “reasonable”, “sufficient”, “low risk”, “soon”, “appropriate”, etc.).
+
+- Flag any Contract that uses vague language (“too high”, “reasonable”, “sufficient”, “low risk”, “high relative to”, “soon”, “appropriate”, “falls between”, etc.).
 - Every Contract must be precise enough that a clear automated test can be written against it.
+- This is a **primary** quality gate: vague Contracts are not minor nits.
 
 ### 2. States must name their subject
+
 - Every State must make its subject explicit (e.g. “Application is Automatically approved”, not just “Automatically approved”).
 - Flag any State that leaves the subject ambiguous.
 
-### 3. Completeness
+### 3. Process structure
+
+- Each Process should declare **Actor**, **Requires**, and **Results**.
+- Actor must be a declared Role or `System`.
+- Requires / Results should reference declared States when possible; flag free text that cannot be checked.
+- Flag bare process names with no Actor / Requires / Results.
+
+### 4. Completeness
+
 - Are there important Processes that have no corresponding Contracts?
 - Are there Contracts that are never demonstrated by any Scenario?
 - Are there States that can never be reached by any Process?
-- Are there Roles that are declared but never used in any Contract or Scenario?
-- Are there Roles used in Contracts or Scenarios that were never declared?
+- Are there Roles that are declared but never used in any Contract, Process, or Scenario?
+- Are there Roles used in Contracts, Processes, or Scenarios that were never declared?
 
-### 4. Consistency inside a model
+### 5. Consistency inside a model
+
 - Do Scenarios respect the declared Contracts?
 - Do Processes move between declared States?
 - Are there contradictory Contracts?
+- Scenario vocabulary: forbidden actions should use `is broken`; automatic rules that fire correctly should use `is applied`.
 
-### 5. Consistency across models (when multiple models are provided)
+### 6. Consistency across models (when multiple models are provided)
+
 - Are the same Role names used with different meanings?
 - Are there conflicting Contracts about the same rule?
 - Are soft or hard references between models broken or missing?
 
-### 6. Thin-model discipline
+### 7. Thin-model discipline
+
 - Is the model trying to cover too many unrelated concerns?
 - Could it be split into smaller, focused models?
 
@@ -57,7 +72,8 @@ Overall assessment (e.g. “Ready”, “Needs improvement”, “Major problems
 **Problems found**  
 Numbered list of concrete issues.  
 For each problem state:
-- Which model and which element (Contract, State, Role, Scenario…)
+
+- Which model and which element (Contract, State, Role, Process, Scenario…)
 - Why it is a problem
 - Suggested improvement or clarifying question
 
@@ -75,3 +91,5 @@ If no significant problems are found, say so clearly and mention any minor sugge
 
 Direct, precise, and constructive.  
 Your goal is to make the knowledge more reliable and easier to change, not to be pedantic.
+
+Note: some models in a repository may be **deliberate specimens** for validation (intentionally vague Contracts). Still report the findings fully; the human decides whether the vagueness is intentional.

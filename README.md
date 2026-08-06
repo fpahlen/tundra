@@ -2,50 +2,78 @@
 
 A plain-English language for specifying business processes with explicit roles, testable contracts, and executable scenarios.
 
-Tundra is a simple, language-agnostic way to capture business knowledge so that both humans and AIs can read, challenge, and evolve it.
+**Tundra captures who may do what, under which conditions, and how you prove it** — so humans and AIs can share one model of the business without treating source code as the only source of truth.
 
-It sits between human intent and generated code.  
-The goal is to keep knowledge explicit, localized, and easy to change.
-
-Models are deliberately thin.  
-A whole system is normally made of many small models rather than one large model.
+As AI writes more of the code, durable knowledge must live *above* the code. Tundra is that layer: thin models, explicit obligations, and living examples that become tests.
 
 Files use the suffix `.tundra`.
+
+---
+
+## Why Tundra?
+
+Most teams either bury rules in code (invisible to non-programmers) or scatter them across tickets and wikis (invisible to machines). Tundra sits in between:
+
+| Audience | What they get |
+|----------|----------------|
+| Humans | Plain language they can read, challenge, and change |
+| AIs | Structure disciplined enough to extract, validate, and implement without inventing rules |
+| Both | A common language for *good* software: explicit knowledge, single source of truth, design by contract |
+
+A whole system is normally many **small** models, not one giant file.
 
 ---
 
 ## The Five Core Concepts
 
 ### Roles
+
 Named actors in the domain.  
 A real person can hold several Roles at the same time (for example Account Holder and Beneficial Owner).  
-Roles are declared explicitly so that rights and obligations can be attached clearly and consistently.
+Roles are declared explicitly so that rights and obligations attach clearly.
 
 ### Contracts
+
 The authoritative rules and obligations of the domain.  
 They state who may do what, and under which conditions.  
-Contracts are the single source of truth and must be written in plain language that a non-programmer can read and challenge.
+Contracts are the single source of truth and must be written so a non-programmer can read them and an automated test can check them.
 
 ### States
-The meaningful situations that a specific subject can be in.  
 
-Every State must name its subject explicitly so there is no ambiguity about what is in that state.  
-Good examples: “Application is Automatically approved”, “Hours are in Draft”, “Invoice is Open”.  
+The meaningful situations that a **specific subject** can be in.
 
-States make the progress of the process visible and checkable.
+Every State must name its subject.  
+Good: “Application is Automatically approved”, “Hours are in Draft”, “Invoice is Open”.  
+Bad: “Automatically approved” (subject unclear).
+
+States make progress visible and checkable.
 
 ### Processes
-The named transformations that move the subject from one State to another.  
-Each Process should have clear preconditions and results expressed through the Contracts and States.
+
+The named transformations that move a subject from one State to another.
+
+Each Process should declare:
+
+- **Actor** — which Role (or `System` for automatic steps) performs it  
+- **Requires** — precondition State(s) or a short condition tied to a Contract  
+- **Results** — resulting State(s)
 
 ### Scenarios
-Concrete, end-to-end *examples* of walking through the business process.  
 
-The actual business process is defined by States + Processes + Contracts.  
-A Scenario is one specific path through that process (usually a happy path or an important error path).  
+Concrete, end-to-end *examples* of walking through the process.
 
-Scenarios show the Roles, Contracts, States and Processes in action, serve as living documentation, and become the basis for generated tests.  
-You can have many Scenarios for the same process without changing the underlying rules.
+The process itself is defined by States + Processes + Contracts.  
+A Scenario is one specific path (happy path or important error path).
+
+Scenarios are living documentation and the basis for generated tests.  
+You can add many Scenarios without changing the underlying rules.
+
+**Scenario vocabulary for contracts:**
+
+| Situation | Phrase |
+|-----------|--------|
+| An actor tries something forbidden | `And the contract "…" is broken` |
+| An automatic rule fires as designed | `And the contract "…" is applied` |
 
 ---
 
@@ -66,27 +94,31 @@ Tundra: <short name>
     ...
 
   States:
-    - <state 1>
-    - <state 2>
-    ...
+    - <State that names its subject>
+    - ...
 
   Processes:
-    - <process 1>
-    - <process 2>
-    ...
+    - <Process name>
+        Actor: <Role or System>
+        Requires: <State or short condition>
+        Results: <State or short outcome>
+    - ...
 
   Scenario: <name of happy path>
     Given ...
-    When ...
+    When the <Role> ...
     Then ...
     ...
 
   Scenario: <name of important error path>
     Given ...
-    When ...
+    When the <Role> tries to ...
     Then ...
     And the contract "..." is broken
 ```
+
+`Actor`, `Requires`, and `Results` are plain English under each Process.  
+They are required for quality house models and for extract/implement prompts; they keep transitions explicit without turning Tundra into a programming language.
 
 ---
 
@@ -110,17 +142,36 @@ Tundra: Consultant hours to client invoice
   States:
     - Hours are in Draft
     - Hours are Submitted
+    - Hours are Invoiced
     - Invoice is Open
     - Invoice is Approved
     - Invoice is Disputed
 
   Processes:
     - Register Hours
+        Actor: Consultant
+        Requires: no hours exist
+        Results: Hours are in Draft
     - Edit Hours
+        Actor: Consultant
+        Requires: Hours are in Draft
+        Results: Hours are in Draft
     - Submit Hours
+        Actor: Consultant
+        Requires: Hours are in Draft
+        Results: Hours are Submitted
     - Create Invoice
+        Actor: Manager
+        Requires: Hours are Submitted
+        Results: Invoice is Open; Hours are Invoiced
     - Approve Invoice
+        Actor: Client
+        Requires: Invoice is Open
+        Results: Invoice is Approved
     - Dispute Invoice
+        Actor: Client
+        Requires: Invoice is Open
+        Results: Invoice is Disputed
 
   Scenario: Happy path – hours submitted and invoice approved
     Given no hours exist
@@ -133,6 +184,7 @@ Tundra: Consultant hours to client invoice
 
     When the Manager creates an invoice from the submitted hours
     Then the Invoice is Open
+    And the Hours are Invoiced
 
     When the Client approves the invoice
     Then the Invoice is Approved
@@ -143,6 +195,13 @@ Tundra: Consultant hours to client invoice
     Then the edit is rejected
     And the Hours remain Submitted
     And the contract "Hours may be edited by the Consultant only while they are in Draft" is broken
+
+  Scenario: Error – Consultant tries to create an invoice
+    Given the Hours are Submitted
+    When the Consultant tries to create an invoice
+    Then invoice creation is rejected
+    And the Hours remain Submitted
+    And the contract "Only the Manager may create an invoice" is broken
 ```
 
 ---
@@ -154,8 +213,9 @@ Tundra: Consultant hours to client invoice
 Contracts:
   - The system should be secure
   - Users can do things
+  - The loan is too high relative to income
 ```
-→ Too vague. A Contract must be specific enough that it can be checked.
+→ Too vague. A Contract must be specific enough that a clear automated test can be written (thresholds, named conditions, explicit roles).
 
 **Bad: Roles hidden only inside Contracts**
 ```text
@@ -172,6 +232,10 @@ Creating States or Contracts that were never mentioned by the human.
 Putting authentication, invoicing, reporting and user management into one giant file.  
 → Prefer many small, focused models.
 
+**Bad: Processes without Actor / Requires / Results**
+A bare list of process names forces implementers to guess transitions.  
+→ State who acts, what must already be true, and what changes.
+
 **Bad: Inconsistent naming across models**
 Calling the same actor “User” in one model and “Customer” in another without reason.  
 → Reuse existing Role names whenever possible.
@@ -184,10 +248,10 @@ Calling the same actor “User” in one model and “Customer” in another wit
    If something is unclear, ask a clarifying question.
 
 2. **Prefer thin models.**  
-   Only include what is actually needed for the described behaviour.
+   Only include what is needed for the described behaviour.
 
-3. **Contracts are written in plain language.**  
-   A non-programmer must be able to read and challenge them.
+3. **Contracts are plain language and testable.**  
+   A non-programmer must be able to challenge them; a test must be able to check them.
 
 4. **Roles are first-class.**  
    Declare them explicitly. A person can hold multiple Roles.
@@ -195,46 +259,108 @@ Calling the same actor “User” in one model and “Customer” in another wit
 5. **Every State must name its subject.**  
    Write “Application is Automatically approved”, not just “Automatically approved”.
 
-6. **Consistency across models.**  
+6. **Processes declare Actor, Requires, and Results.**  
+   Use a declared Role or `System` as Actor.
+
+7. **Consistency across models.**  
    When existing models are provided, treat their Roles and Contracts as authoritative.  
    Do not silently create near-synonyms.
 
-7. **Scenarios demonstrate the Contracts.**  
-   At least one happy-path Scenario and the most important error Scenarios should be present.
+8. **Scenarios demonstrate the Contracts.**  
+   At least one happy-path Scenario and the most important error Scenarios should be present.  
+   Use `is broken` for forbidden actions and `is applied` for automatic rules that fire correctly.
+
+---
+
+## How Tundra maps to code
+
+| Tundra | In code |
+|--------|---------|
+| Role | Actor type / enum passed into process functions |
+| Contract | Fail-fast check; error message quotes the Contract text |
+| State | Enum (or equivalent) **per subject** — do not collapse unrelated subjects into one enum |
+| Process | One function/method; guard with Actor + Requires; return Results |
+| Scenario | Executable test or demo script |
+
+Roles are not decoration: if a Contract says “Only the Manager may…”, the implementation must take an actor and reject the wrong Role.
+
+---
+
+## Using the prompt pack
+
+This repository includes three prompts under `prompts/`. They form a loop:
+
+```text
+Human intent  →  extract-tundra  →  .tundra model(s)
+                      ↓
+                validate-tundra  →  quality report
+                      ↓
+                implement-tundra →  code + scenario tests
+```
+
+| Prompt | Job |
+|--------|-----|
+| [`prompts/extract-tundra.md`](prompts/extract-tundra.md) | Turn messy human description into a thin `.tundra` model (or ask clarifying questions) |
+| [`prompts/validate-tundra.md`](prompts/validate-tundra.md) | Check testability, structure, coverage, and cross-model consistency |
+| [`prompts/implement-tundra.md`](prompts/implement-tundra.md) | Generate faithful code and tests from a model |
+
+Always treat this README as the definition of Tundra when using the prompts.
+
+### House models
+
+| Model | Purpose |
+|-------|---------|
+| [`models/consultant-hours-invoice.tundra`](models/consultant-hours-invoice.tundra) | Clean reference model (also implemented under `examples/`) |
+| [`models/loan-application-entry.tundra`](models/loan-application-entry.tundra) | Domain-rich example; **intentionally includes vague Contracts** so `validate-tundra` has known findings to report |
+
+### Runnable example
+
+See [`examples/consultant-hours/`](examples/consultant-hours/) for Python and C implementations that enforce Roles and Contracts (happy path + error paths).
 
 ---
 
 ## Why these five concepts?
 
-They give us the properties that matter most for long-lived systems:
+They give the properties that matter for long-lived systems:
 
 - Explicit knowledge (no coincidence)
 - Single source of truth (DRY)
 - Clear obligations (Design by Contract)
 - Visible progress (States + Processes)
-- Living examples that can become tests (Scenarios)
-- Easy to change, even by non-programmers
+- Living examples that become tests (Scenarios)
+- Easy to change, even by non-programmers (ETC)
 
 ---
 
-## Background and Principles
+## Background and principles
 
-Tundra is heavily inspired by the ideas in *The Pragmatic Programmer* by Dave Thomas and Andy Hunt.
+Tundra is heavily inspired by *The Pragmatic Programmer* by Dave Thomas and Andy Hunt.
 
-Key principles from the book that shaped it:
+| Principle | How Tundra uses it |
+|-----------|-------------------|
+| **Easy to Change (ETC)** | Thin, localized models; minimal ripple when a rule changes |
+| **DRY** | Contracts are the single authoritative statement of a rule |
+| **Design by Contract** | Obligations are explicit; violations fail early and clearly |
+| **No Coincidence** | Behaviour comes from declared rules, not accidental conditions |
+| **Tracer Bullets** | Scenarios are thin end-to-end paths that give real feedback |
+| **Orthogonality** | Unrelated concerns live in separate models |
 
-- **Easy to Change (ETC)** – The primary measure of design quality. Knowledge must be localized so that a change has minimal ripple effects.
-- **DRY (Don’t Repeat Yourself)** – Every piece of knowledge must have a single, authoritative representation.
-- **Design by Contract** – Obligations between parties should be explicit. Violations should be detected early and clearly.
-- **No Coincidence** – Code (and models) should work because of deliberate design, not because of accidental conditions.
-- **Tracer Bullets / Feedback** – Prefer thin, end-to-end paths that give real feedback early (this is why Scenarios exist).
-- **Orthogonality** – Keep unrelated things independent so they can change independently.
+The language turns those ideas into a form both humans and AIs can use between intent and code.
 
-The language tries to make these principles concrete and usable by both humans and AIs.  
-It turns the pragmatic ideas into a simple, structured form that sits between human intent and generated code.
-
-For deeper reading, see:
+For deeper reading:
 
 > Dave Thomas & Andy Hunt  
 > *The Pragmatic Programmer: Your Journey to Mastery*  
 > (20th Anniversary Edition recommended)
+
+---
+
+## Roadmap
+
+The near-term product direction is a small site that **interviews** a human and produces a set of `.tundra` files, using the same extract/validate discipline as this pack. Later: point at a GitHub repo or codebase and **extract** the Tundras implied by existing behaviour. This repository remains the methodology source of truth those tools should consume.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
