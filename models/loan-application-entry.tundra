@@ -1,0 +1,70 @@
+Tundra: Loan application entry and credit decision
+
+  Roles:
+    - Applicant
+    - Loan Officer
+
+  Contracts:
+    - The Applicant must successfully identify with Swedish BankID to create an account and start a loan application
+    - If BankID identification fails or is cancelled, the application is automatically declined
+    - A UC credit check must be performed (or a previous check reused) before a credit decision is made
+    - A previous UC credit check may be reused only if it is less than 6 months old
+    - If the requested loan is high relative to the Applicant’s income or the Applicant has betalningsanmärkningar, the application is automatically declined
+    - If the requested loan is low relative to the Applicant’s income and the Applicant has no missed payments, the application is automatically approved
+    - Applications that fall between automatic approval and automatic decline must be reviewed and decided by a Loan Officer
+
+  States:
+    - Application is Not started
+    - Application is BankID in progress
+    - Application is BankID failed
+    - Application is Credit check required
+    - Application is Credit check completed
+    - Application is Automatically approved
+    - Application is Automatically declined
+    - Application is Pending Loan Officer review
+    - Application is Approved by Loan Officer
+    - Application is Declined by Loan Officer
+
+  Processes:
+    - Start application with BankID
+    - Complete BankID identification
+    - Fail BankID identification
+    - Perform or reuse UC credit check
+    - Make automatic credit decision
+    - Send to Loan Officer for review
+    - Loan Officer approves
+    - Loan Officer declines
+
+  Scenario: Happy path – low risk applicant is automatically approved
+    Given the Application is Not started
+    When the Applicant starts the application with BankID
+    Then the Application is BankID in progress
+
+    When the Applicant successfully completes BankID identification
+    Then the Application is Credit check required
+
+    When a UC credit check is performed or a valid previous check is reused
+    Then the Application is Credit check completed
+
+    When the requested loan is low relative to income and there are no missed payments
+    Then the Application is Automatically approved
+
+  Scenario: Error – BankID identification fails
+    Given the Application is BankID in progress
+    When the BankID identification fails or is cancelled
+    Then the Application is Automatically declined
+    And the contract "If BankID identification fails or is cancelled, the application is automatically declined" is applied
+
+  Scenario: Error – high risk applicant is automatically declined
+    Given the Application is Credit check completed
+    When the requested loan is high relative to income or the Applicant has betalningsanmärkningar
+    Then the Application is Automatically declined
+    And the contract "If the requested loan is high relative to the Applicant’s income or the Applicant has betalningsanmärkningar, the application is automatically declined" is applied
+
+  Scenario: Manual review path
+    Given the Application is Credit check completed
+    When the application falls between automatic approval and automatic decline
+    Then the Application is Pending Loan Officer review
+
+    When the Loan Officer approves the application
+    Then the Application is Approved by Loan Officer
