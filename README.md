@@ -321,7 +321,7 @@ See [`examples/consultant-hours/`](examples/consultant-hours/) for Python and C 
 
 ## Why these five concepts?
 
-They give the properties that matter for long-lived systems:
+They give the properties that matter most for durable **domain obligations**:
 
 - Explicit knowledge (no coincidence)
 - Single source of truth (DRY)
@@ -329,6 +329,64 @@ They give the properties that matter for long-lived systems:
 - Visible progress (States + Processes)
 - Living examples that become tests (Scenarios)
 - Easy to change, even by non-programmers (ETC)
+
+They do **not** cover every property of good long-running software. See [Scope and blindspots](#scope-and-blindspots).
+
+---
+
+## Scope and blindspots
+
+Tundra is intentionally narrow. It is not a complete methodology for building software.
+
+### What it is for
+
+**Business process knowledge:** who may do what, under which conditions, how a subject moves through meaningful States, and how you demonstrate that with Scenarios.
+
+That is where long-lived business systems often lose knowledge — buried in code, tickets, or one expert’s head.
+
+### What it is not
+
+Tundra is not a data model, architecture diagram, NFR catalog, threat model, UX spec, ops runbook, or full test strategy.  
+If your main risk is throughput, cryptography, pure analytics, or pixel-level UX, start with other tools and use Tundra only where **obligations and lifecycles** matter.
+
+### Known blindspots
+
+These are real gaps. Name them so teams pair Tundra with the right companions instead of forcing everything into Contracts.
+
+| Blindspot | What Tundra under-specifies | Pair with |
+|-----------|----------------------------|-----------|
+| **Data shape & invariants** | Cardinality, sums, uniqueness, “what identifies this subject” | Schema, constraints, domain types, property tests |
+| **Time, history & audit** | States are *current*; who changed what when; as-of / effective dating | Event log, audit tables, temporal models |
+| **Concurrency** | Models read as one case (“the invoice”); races, retries, multi-instance | Explicit contention Scenarios, locking/idempotency design |
+| **Failure beyond “contract broken”** | Downstream timeouts, partial failure, compensation, degraded mode | Retries, sagas, supervision, circuit breakers |
+| **Money & calculations** | Discrete state hops dominate; rounding, interest, premiums | Formulas + golden tests |
+| **Reads, reporting & reconciliation** | Write/process oriented; weak on extracts and “does A match B?” | Query contracts, reconciliations, report specs |
+| **Rule evolution** | Timeless snapshot; grandfathering, dual-running policy, in-flight migration | Versioned rules / effective dates outside or beside the model |
+| **Model composition** | Many thin models encouraged; binding between them (IDs, events) is light | Explicit cross-model links and shared Role/Contract names |
+| **Long human waits** | Processes look like immediate steps; timers, reminders, escalations | Operational SLAs, workflow timers elsewhere |
+| **Scenarios ≠ full verification** | Tracer-bullet examples, not exhaustive coverage | Property, load, migration, and chaos tests as needed |
+
+Also easy to miss: side obligations on a transition (letters, GDPR erasure, “document the decision”), fairness of automated decisions, and production observability (did this Process run?).
+
+### Biases we admit
+
+Tundra leans toward **case workflow**, **stakeholder-readable rules**, and **plain language** — shaped by enterprise process domains and a preference for Eloquent, changeable knowledge over ceremony.
+
+It under-exports concerns that also keep systems alive for decades: **structural data correctness**, **runtime resilience**, and **set-based / batch** work.  
+“Actor” means a **Role** (who is allowed to act), not an OTP process or concurrent runtime actor.
+
+For a longer discussion, see [`docs/scope-and-blindspots.md`](docs/scope-and-blindspots.md).
+
+### Bad: stuffing unrelated quality into Contracts
+
+```text
+Contracts:
+  - The API p99 latency must be under 200ms
+  - The system must be secure
+  - The UI should feel snappy
+```
+
+→ Wrong tool. Keep Contracts for domain obligations you can demonstrate in Scenarios; put SLOs, threat models, and UX criteria in their own artifacts.
 
 ---
 

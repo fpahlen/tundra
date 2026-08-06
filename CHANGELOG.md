@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.1
+
+- Documented **scope and blindspots** (README + `docs/scope-and-blindspots.md`)
+- Clarified that the five concepts target durable domain obligations, not every quality of long-running software
+
 ## v1.1
 
 Promotable methodology pack.
