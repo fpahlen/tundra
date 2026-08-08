@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2
+
+- **Grok Build skill** at `.grok/skills/tundra/` (`/tundra` extract · validate · implement)
+- Self-contained `references/` (format, prompts, example model) for user-wide install
+- README: Use with Grok Build + optional `AGENTS.md` snippet
+
 ## v1.1.1
 
 - Documented **scope and blindspots** (README + `docs/scope-and-blindspots.md`)

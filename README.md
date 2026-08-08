@@ -286,9 +286,46 @@ Roles are not decoration: if a Contract says “Only the Manager may…”, the 
 
 ---
 
+## Use with Grok Build
+
+Tundra ships as a **Grok Build skill** so you can keep vibe coding on rails without re-pasting prompts.
+
+### In this repo
+
+Open the repo in Grok Build, then:
+
+```text
+/tundra interview   # or: describe a feature — extract a .tundra model
+/tundra validate models/
+/tundra implement models/consultant-hours-invoice.tundra python
+```
+
+Skill path: [`.grok/skills/tundra/`](.grok/skills/tundra/) (slash command `/tundra`).
+
+### In any project
+
+Copy or symlink the skill into your user skills:
+
+```bash
+cp -R /path/to/tundra/.grok/skills/tundra ~/.grok/skills/tundra
+```
+
+Or add the skill directory under `[skills] paths` in `~/.grok/config.toml`.
+
+Optional snippet for a consumer app’s `AGENTS.md`:
+
+```markdown
+## Domain rules
+- Authoritative business process rules live in `models/*.tundra` (Tundra format).
+- Do not invent Roles/Contracts; run /tundra extract or ask the human.
+- Prefer implementing Processes from existing .tundra files.
+```
+
+---
+
 ## Using the prompt pack
 
-This repository includes three prompts under `prompts/`. They form a loop:
+The same loop is available as standalone prompts under `prompts/` (for any AI tool):
 
 ```text
 Human intent  →  extract-tundra  →  .tundra model(s)
@@ -304,7 +341,7 @@ Human intent  →  extract-tundra  →  .tundra model(s)
 | [`prompts/validate-tundra.md`](prompts/validate-tundra.md) | Check testability, structure, coverage, and cross-model consistency |
 | [`prompts/implement-tundra.md`](prompts/implement-tundra.md) | Generate faithful code and tests from a model |
 
-Always treat this README as the definition of Tundra when using the prompts.
+Always treat this README as the definition of Tundra when using the prompts. The Grok skill embeds a condensed copy under `.grok/skills/tundra/references/`.
 
 ### House models
 

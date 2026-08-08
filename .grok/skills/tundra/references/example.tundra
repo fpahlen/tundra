@@ -1,0 +1,77 @@
+Tundra: Consultant hours to client invoice
+
+  Roles:
+    - Consultant
+    - Manager
+    - Client
+
+  Contracts:
+    - Hours may be edited by the Consultant only while they are in Draft
+    - Once hours are Submitted they become immutable for the Consultant
+    - An invoice may be created only from Submitted hours that have not already been invoiced
+    - Only the Client may Approve or Dispute an open invoice
+    - Only the Manager may create an invoice
+
+  States:
+    - Hours are in Draft
+    - Hours are Submitted
+    - Hours are Invoiced
+    - Invoice is Open
+    - Invoice is Approved
+    - Invoice is Disputed
+
+  Processes:
+    - Register Hours
+        Actor: Consultant
+        Requires: no hours exist
+        Results: Hours are in Draft
+    - Edit Hours
+        Actor: Consultant
+        Requires: Hours are in Draft
+        Results: Hours are in Draft
+    - Submit Hours
+        Actor: Consultant
+        Requires: Hours are in Draft
+        Results: Hours are Submitted
+    - Create Invoice
+        Actor: Manager
+        Requires: Hours are Submitted
+        Results: Invoice is Open; Hours are Invoiced
+    - Approve Invoice
+        Actor: Client
+        Requires: Invoice is Open
+        Results: Invoice is Approved
+    - Dispute Invoice
+        Actor: Client
+        Requires: Invoice is Open
+        Results: Invoice is Disputed
+
+  Scenario: Happy path – hours submitted and invoice approved
+    Given no hours exist
+    When the Consultant registers hours
+    Then the Hours are in Draft
+
+    When the Consultant submits the hours
+    Then the Hours are Submitted
+    And the hours can no longer be edited by the Consultant
+
+    When the Manager creates an invoice from the submitted hours
+    Then the Invoice is Open
+    And the Hours are Invoiced
+
+    When the Client approves the invoice
+    Then the Invoice is Approved
+
+  Scenario: Error – Consultant tries to edit hours after submission
+    Given the Hours are Submitted
+    When the Consultant tries to edit the hours
+    Then the edit is rejected
+    And the Hours remain Submitted
+    And the contract "Hours may be edited by the Consultant only while they are in Draft" is broken
+
+  Scenario: Error – Consultant tries to create an invoice
+    Given the Hours are Submitted
+    When the Consultant tries to create an invoice
+    Then invoice creation is rejected
+    And the Hours remain Submitted
+    And the contract "Only the Manager may create an invoice" is broken
