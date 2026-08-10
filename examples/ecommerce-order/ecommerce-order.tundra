@@ -1,0 +1,78 @@
+Tundra: E-commerce order lifecycle
+
+  Roles:
+    - Customer
+    - Merchant
+    - Payment Provider
+
+  Relationships:
+    - Customer is Owner of Cart
+    - Customer is Owner of Order
+    - Merchant is Handler of Order
+
+  Contracts:
+    - Only a Customer may add items to a Cart or place an Order
+    - An Order may be placed only from a Cart that contains at least one item
+    - Payment must succeed before an Order can move to Paid
+    - Only the Merchant may mark an Order as Shipped or Delivered
+    - A Customer may cancel an Order only while it is in Placed or Paid state
+    - Once an Order is Shipped it can no longer be cancelled by the Customer
+
+  States:
+    - Cart is Empty
+    - Cart has Items
+        @contains LineItems
+        @quantity at least 1
+    - Order is Placed
+    - Order is Paid
+    - Order is Shipped
+    - Order is Delivered
+    - Order is Cancelled
+    - Order is Payment Failed
+
+  Processes:
+    - Add item to Cart
+    - Remove item from Cart
+    - Place Order
+        @quantity at least 1
+    - Capture Payment
+    - Fail Payment
+    - Mark as Shipped
+    - Mark as Delivered
+    - Cancel Order
+        @before Shipped
+
+  Scenario: Happy path – customer buys and receives goods
+    Given the Cart is Empty
+    When the Customer adds an item to the Cart
+    Then the Cart has Items
+
+    When the Customer places the Order
+    Then the Order is Placed
+
+    When the Payment Provider captures payment successfully
+    Then the Order is Paid
+
+    When the Merchant marks the Order as Shipped
+    Then the Order is Shipped
+
+    When the Merchant marks the Order as Delivered
+    Then the Order is Delivered
+
+  Scenario: Error – payment fails
+    Given the Order is Placed
+    When the Payment Provider fails to capture payment
+    Then the Order is Payment Failed
+
+  Scenario: Error – customer tries to cancel after shipping
+    Given the Order is Shipped
+    When the Customer tries to cancel the Order
+    Then the cancellation is rejected
+    And the Order remains Shipped
+    And the contract "Once an Order is Shipped it can no longer be cancelled by the Customer" is broken
+
+  Scenario: Error – place order from empty cart
+    Given the Cart is Empty
+    When the Customer tries to place an Order
+    Then the order is rejected
+    And the contract "An Order may be placed only from a Cart that contains at least one item" is broken

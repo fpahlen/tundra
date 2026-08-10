@@ -1,7 +1,7 @@
 /*
  * Reference implementation of the Consultant hours Tundra model.
  *
- * Implements: models/consultant-hours-invoice.tundra
+ * Implements: consultant-hours-invoice.tundra
  * Language: ANSI C (C89/C90 compatible, no external libraries)
  *
  * Demonstrates Roles as actors, separate state per subject (Hours vs Invoice),

@@ -1,0 +1,76 @@
+Tundra: Booking and reservation
+
+  Roles:
+    - Guest
+    - Host
+    - System
+
+  Relationships:
+    - Guest is Booker of Reservation
+    - Host is Provider of Time slot
+    - Guest is Participant of Reservation
+
+  Contracts:
+    - A Reservation may be created only for a time slot that is Available
+    - Only the Guest who created a Reservation may cancel it while it is Confirmed
+    - A Guest may cancel a Confirmed Reservation only more than 24 hours before start time
+    - A Host may cancel a Reservation only before the start time
+    - Once a Reservation is Completed it cannot be cancelled
+    - The System marks a Reservation as No-show if the Guest does not arrive by start time
+
+  States:
+    - Time slot is Available
+        @capacity 1
+    - Time slot is Reserved
+    - Reservation is Pending
+        @expires-in 15 minutes
+    - Reservation is Confirmed
+    - Reservation is Cancelled by Guest
+    - Reservation is Cancelled by Host
+    - Reservation is Completed
+    - Reservation is No-show
+
+  Processes:
+    - Check availability
+    - Create Reservation
+    - Confirm Reservation
+    - Cancel by Guest
+        @before start time
+        @within 24 hours before start
+    - Cancel by Host
+        @before start time
+    - Mark as Completed
+        @after end time
+    - Mark as No-show
+        @after start time
+
+  Scenario: Happy path – guest books and stays
+    Given the Time slot is Available
+    When the Guest creates a Reservation
+    Then the Reservation is Pending
+    And the Time slot is Reserved
+
+    When the Reservation is confirmed
+    Then the Reservation is Confirmed
+
+    When the stay finishes successfully
+    Then the Reservation is Completed
+
+  Scenario: Error – guest tries to book an already reserved slot
+    Given the Time slot is Reserved
+    When a Guest tries to create a Reservation for the same slot
+    Then the reservation is rejected
+    And the contract "A Reservation may be created only for a time slot that is Available" is broken
+
+  Scenario: Error – guest cancels too late
+    Given the Reservation is Confirmed
+    And the start time is less than 24 hours away
+    When the Guest tries to cancel the Reservation
+    Then the cancellation is rejected
+    And the contract "A Guest may cancel a Confirmed Reservation only more than 24 hours before start time" is broken
+
+  Scenario: Error – guest does not arrive
+    Given the Reservation is Confirmed
+    And the start time has passed
+    When the System marks the Reservation as No-show
+    Then the Reservation is No-show

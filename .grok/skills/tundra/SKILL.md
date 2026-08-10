@@ -50,12 +50,12 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 
 ## Shared rules (all modes)
 
-1. **Never invent** important Roles, Contracts, States, or Processes. Ask instead.  
+1. **Never invent** important Roles, Relationships, Contracts, States, or Processes. Ask instead.  
 2. **Contracts must be testable** — refuse vagueness (“too high”, “reasonable”, “low risk”, “falls between”).  
 3. **Thin models** — one focused concern per file.  
 4. **Tone:** collaborative, plain language, short. Non-coders should understand model text.  
 5. Do **not** lecture on blindspots unless the user asks or a gap blocks the task.  
-6. Prefer writing files under the project’s `models/` directory when it exists; otherwise ask where to put `.tundra` files (suggest `models/`).  
+6. Prefer writing files under `examples/<short-name>/` when this repo is the project; otherwise ask where to put `.tundra` files (suggest a focused folder, not a dump into root).  
 7. After **extract**, offer **validate**. After validate **Ready**, offer **implement**. Do not force the whole loop.
 
 ---
@@ -67,7 +67,7 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 3. From the user’s description, either:  
    - ask **few** clarifying questions (missing actors, vague thresholds, unclear subject), or  
    - write a complete `.tundra` model in the exact format.  
-4. Save to e.g. `models/<short-name>.tundra` (create `models/` if needed and appropriate).  
+4. Save to e.g. `examples/<short-name>/<short-name>.tundra` when working in this repo; otherwise a path the human chooses.  
 5. Show a short summary (Roles + Contracts count + Scenario names), not a wall of theory.  
 6. Ask if they want validate next.
 
@@ -78,7 +78,7 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 ## Mode: validate
 
 1. Read `format.md` + `validate.md`.  
-2. Targets: paths the user named, or all `**/*.tundra` / `models/*.tundra` in the project.  
+2. Targets: paths the user named, or all `**/*.tundra` / `examples/**/*.tundra` in the project.  
 3. Produce the validation report structure from `validate.md`.  
 4. Be direct. House models may be deliberate specimens (e.g. intentional vague Contracts) — still report findings; note if the README marks a specimen.  
 5. Ask if they want help fixing issues or implementing a Ready model.

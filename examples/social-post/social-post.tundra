@@ -1,0 +1,63 @@
+Tundra: Social post lifecycle
+
+  Roles:
+    - Author
+    - Viewer
+    - Moderator
+
+  Relationships:
+    - Author of Post
+    - Viewer is Follower of Author
+
+  Contracts:
+    - Only the Author may create, edit or delete their own Post
+    - A Post may be edited by the Author only while it is in Draft or Published
+    - Only a Moderator may hide or remove a Post for policy violations
+    - Any Viewer may react to or comment on a Published Post
+    - Only a Follower of the Author may view a private Post
+    - A hidden or removed Post is no longer visible to ordinary Viewers
+
+  States:
+    - Post is Draft
+    - Post is Published
+    - Post is Hidden by Moderator
+    - Post is Removed by Moderator
+    - Post is Deleted by Author
+
+  Processes:
+    - Create Post
+    - Edit Post
+    - Publish Post
+    - Delete Post
+    - Hide Post
+    - Remove Post
+    - React to Post
+    - Comment on Post
+    - View private Post
+
+  Scenario: Happy path – author publishes a post
+    Given no Post exists
+    When the Author creates a Post
+    Then the Post is Draft
+
+    When the Author publishes the Post
+    Then the Post is Published
+
+  Scenario: Error – viewer tries to edit someone else’s post
+    Given the Post is Published
+    When a Viewer tries to edit the Post
+    Then the edit is rejected
+    And the Post remains Published
+    And the contract "Only the Author may create, edit or delete their own Post" is broken
+
+  Scenario: Moderator hides a post
+    Given the Post is Published
+    When the Moderator hides the Post
+    Then the Post is Hidden by Moderator
+
+  Scenario: Error – non-follower tries to view private post
+    Given the Post is Published
+    And the Viewer is not a Follower of the Author
+    When the Viewer tries to view the private Post
+    Then the view is rejected
+    And the contract "Only a Follower of the Author may view a private Post" is broken

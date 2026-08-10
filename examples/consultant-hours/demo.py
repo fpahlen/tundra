@@ -1,7 +1,7 @@
 """
 Reference implementation of the Consultant hours Tundra model.
 
-Implements: models/consultant-hours-invoice.tundra
+Implements: consultant-hours-invoice.tundra
 Language: Python (standard library only)
 
 Demonstrates Roles as actors, separate state per subject (Hours vs Invoice),

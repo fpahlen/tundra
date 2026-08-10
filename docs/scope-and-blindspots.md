@@ -3,7 +3,7 @@
 Tundra does not try to be a perfect methodology for every software project.  
 This note is for humans (and AIs) who want to know **what it optimizes for**, **what it leaves out**, and **what to use alongside it**.
 
-The short version lives in the [README](../README.md#scope-and-blindspots). This page is the fuller map.
+The short version lives in the [README](../tundra.md#scope-and-blindspots). This page is the fuller map.
 
 ---
 

@@ -1,9 +1,21 @@
+# INTENTIONAL BAD MODEL — do not treat as a quality reference.
+#
+# Several Contracts are deliberately untestable (e.g. "high relative to income",
+# "low relative to income", "fall between automatic approval and automatic decline").
+# This file is a larger counter-example and a fixture for testing the prompts
+# (especially validate-tundra and extract-tundra's refusal of vague Contracts).
+# See README.md in this folder.
+
 Tundra: Loan application entry and credit decision
 
   Roles:
     - Applicant
     - Loan Officer
     - System
+
+  Relationships:
+    - Applicant is Applicant of Application
+    - Loan Officer is Reviewer of Application
 
   Contracts:
     - The Applicant must successfully identify with Swedish BankID to create an account and start a loan application

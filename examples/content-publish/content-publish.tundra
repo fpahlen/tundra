@@ -1,0 +1,55 @@
+Tundra: Content publishing lifecycle
+
+  Roles:
+    - Writer
+    - Editor
+    - Reader
+
+  Relationships:
+    - Writer is Author of Article
+    - Editor is Assignee of Article
+
+  Contracts:
+    - Only a Writer may create and edit a Draft
+    - An Article may be submitted for review only while it is in Draft
+    - Only an Editor may approve or reject a submitted Article
+    - An Article becomes visible to Readers only after it is Published
+    - A published Article may be unpublished by an Editor, returning it to Draft
+
+  States:
+    - Article is Draft
+    - Article is Submitted for Review
+        @expires-in 7 days
+    - Article is Published
+    - Article is Rejected
+
+  Processes:
+    - Create Draft
+    - Edit Draft
+    - Submit for Review
+    - Approve Article
+    - Reject Article
+    - Unpublish Article
+
+  Scenario: Happy path – article is reviewed and published
+    Given no Article exists
+    When the Writer creates a Draft
+    Then the Article is Draft
+
+    When the Writer submits the Article for review
+    Then the Article is Submitted for Review
+
+    When the Editor approves the Article
+    Then the Article is Published
+
+  Scenario: Error – writer tries to publish directly
+    Given the Article is Draft
+    When the Writer tries to publish the Article without review
+    Then the publish is rejected
+    And the Article remains Draft
+    And the contract "Only an Editor may approve or reject a submitted Article" is applied
+
+  Scenario: Editor unpublishes an article
+    Given the Article is Published
+    When the Editor unpublishes the Article
+    Then the Article is Draft

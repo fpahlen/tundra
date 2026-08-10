@@ -5,6 +5,11 @@ Tundra: Consultant hours to client invoice
     - Manager
     - Client
 
+  Relationships:
+    - Consultant is Owner of Hours
+    - Manager is Creator of Invoice
+    - Client is Recipient of Invoice
+
   Contracts:
     - Hours may be edited by the Consultant only while they are in Draft
     - Once hours are Submitted they become immutable for the Consultant

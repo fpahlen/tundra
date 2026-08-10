@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3
+
+- Language definition lives in **`tundra.md`**; root `README.md` is a thin entry map
+- **Relationships** and **decorators** (temporal + aggregational) as first-class extensions
+- Escape hatch (`guard:`) removed; Contracts stay plain English
+- All models under **`examples/<name>/`** (no top-level `models/`)
+- Common web-site examples: booking, ecommerce, marketplace, content-publish, social-post
+- Prompts list full **Resources** (tundra.md, examples, sibling prompts)
+- `loan-application` marked as intentional bad model for validator/prompt testing
+- Grok skill paths updated for `examples/` + six concepts
+
+
 ## v1.2
 
 - **Grok Build skill** at `.grok/skills/tundra/` (`/tundra` extract · validate · implement)
