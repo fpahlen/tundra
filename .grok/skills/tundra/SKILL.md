@@ -100,13 +100,15 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 
 ```text
 /tundra interview consultant submits hours, manager invoices, client approves
-/tundra validate models/
-/tundra implement models/consultant-hours-invoice.tundra python
+/tundra validate examples/
+/tundra implement examples/consultant-hours/consultant-hours-invoice.tundra python
 ```
+
+Models are **YAML** in `.tundra` files (see `format.md`).
 
 ---
 
 ## Out of scope for this skill
 
 Architecture diagrams, performance SLOs, deep security reviews, full UX copy — say so briefly and stay on Tundra.  
-For philosophy and blindspots, point at the project `README.md` / `docs/scope-and-blindspots.md` when the user is inside the Tundra repo; do not require those files when the skill is installed user-wide (format.md is enough).
+For philosophy and blindspots, point at the project `tundra.md` / `docs/scope-and-blindspots.md` when the user is inside the Tundra repo; do not require those files when the skill is installed user-wide (format.md is enough).

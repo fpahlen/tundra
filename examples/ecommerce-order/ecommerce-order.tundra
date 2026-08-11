@@ -1,78 +1,114 @@
-Tundra: E-commerce order lifecycle
+# Canonical Tundra model (YAML). See tundra.md for the language definition.
 
-  Roles:
-    - Customer
-    - Merchant
-    - Payment Provider
+tundra: E-commerce order lifecycle
 
-  Relationships:
-    - Customer is Owner of Cart
-    - Customer is Owner of Order
-    - Merchant is Handler of Order
+roles:
+  - Customer
+  - Merchant
+  - Payment Provider
 
-  Contracts:
-    - Only a Customer may add items to a Cart or place an Order
-    - An Order may be placed only from a Cart that contains at least one item
-    - Payment must succeed before an Order can move to Paid
-    - Only the Merchant may mark an Order as Shipped or Delivered
-    - A Customer may cancel an Order only while it is in Placed or Paid state
-    - Once an Order is Shipped it can no longer be cancelled by the Customer
+relationships:
+  - Customer is Owner of Cart
+  - Customer is Owner of Order
+  - Merchant is Handler of Order
 
-  States:
-    - Cart is Empty
-    - Cart has Items
-        @contains LineItems
-        @quantity at least 1
-    - Order is Placed
-    - Order is Paid
-    - Order is Shipped
-    - Order is Delivered
-    - Order is Cancelled
-    - Order is Payment Failed
+contracts:
+  - Only a Customer may add items to a Cart or place an Order
+  - An Order may be placed only from a Cart that contains at least one item
+  - Payment must succeed before an Order can move to Paid
+  - Only the Merchant may mark an Order as Shipped or Delivered
+  - A Customer may cancel an Order only while it is in Placed or Paid state
+  - Once an Order is Shipped it can no longer be cancelled by the Customer
 
-  Processes:
-    - Add item to Cart
-    - Remove item from Cart
-    - Place Order
-        @quantity at least 1
-    - Capture Payment
-    - Fail Payment
-    - Mark as Shipped
-    - Mark as Delivered
-    - Cancel Order
-        @before Shipped
+states:
+  - Cart is Empty
+  - name: Cart has Items
+    contains: LineItems
+    quantity: at least 1
+  - Order is Placed
+  - Order is Paid
+  - Order is Shipped
+  - Order is Delivered
+  - Order is Cancelled
+  - Order is Payment Failed
 
-  Scenario: Happy path – customer buys and receives goods
-    Given the Cart is Empty
-    When the Customer adds an item to the Cart
-    Then the Cart has Items
+processes:
+  - name: Add item to Cart
+    actor: Customer
+    requires: Cart is Empty
+    results: Cart has Items
 
-    When the Customer places the Order
-    Then the Order is Placed
+  - name: Remove item from Cart
+    actor: Customer
+    requires: Cart has Items
+    results: Cart is Empty
 
-    When the Payment Provider captures payment successfully
-    Then the Order is Paid
+  - name: Place Order
+    actor: Customer
+    requires: Cart has Items
+    results: Order is Placed
+    quantity: at least 1
 
-    When the Merchant marks the Order as Shipped
-    Then the Order is Shipped
+  - name: Capture Payment
+    actor: Payment Provider
+    requires: Order is Placed
+    results: Order is Paid
 
-    When the Merchant marks the Order as Delivered
-    Then the Order is Delivered
+  - name: Fail Payment
+    actor: Payment Provider
+    requires: Order is Placed
+    results: Order is Payment Failed
 
-  Scenario: Error – payment fails
-    Given the Order is Placed
-    When the Payment Provider fails to capture payment
-    Then the Order is Payment Failed
+  - name: Mark as Shipped
+    actor: Merchant
+    requires: Order is Paid
+    results: Order is Shipped
 
-  Scenario: Error – customer tries to cancel after shipping
-    Given the Order is Shipped
-    When the Customer tries to cancel the Order
-    Then the cancellation is rejected
-    And the Order remains Shipped
-    And the contract "Once an Order is Shipped it can no longer be cancelled by the Customer" is broken
+  - name: Mark as Delivered
+    actor: Merchant
+    requires: Order is Shipped
+    results: Order is Delivered
 
-  Scenario: Error – place order from empty cart
-    Given the Cart is Empty
-    When the Customer tries to place an Order
-    Then the order is rejected
-    And the contract "An Order may be placed only from a Cart that contains at least one item" is broken
+  - name: Cancel Order
+    actor: Customer
+    requires:
+      - Order is Placed
+      - Order is Paid
+    results: Order is Cancelled
+    before: Shipped
+
+scenarios:
+  - name: "Happy path: customer buys and receives goods"
+    steps:
+      - Given the Cart is Empty
+      - When the Customer adds an item to the Cart
+      - Then the Cart has Items
+      - When the Customer places the Order
+      - Then the Order is Placed
+      - When the Payment Provider captures payment successfully
+      - Then the Order is Paid
+      - When the Merchant marks the Order as Shipped
+      - Then the Order is Shipped
+      - When the Merchant marks the Order as Delivered
+      - Then the Order is Delivered
+
+  - name: "Error: payment fails"
+    steps:
+      - Given the Order is Placed
+      - When the Payment Provider fails to capture payment
+      - Then the Order is Payment Failed
+
+  - name: "Error: customer tries to cancel after shipping"
+    steps:
+      - Given the Order is Shipped
+      - When the Customer tries to cancel the Order
+      - Then the cancellation is rejected
+      - And the Order remains Shipped
+      - And the contract "Once an Order is Shipped it can no longer be cancelled by the Customer" is broken
+
+  - name: "Error: place order from empty cart"
+    steps:
+      - Given the Cart is Empty
+      - When the Customer tries to place an Order
+      - Then the order is rejected
+      - And the contract "An Order may be placed only from a Cart that contains at least one item" is broken

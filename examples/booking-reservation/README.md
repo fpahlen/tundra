@@ -6,7 +6,7 @@ Canonical model with temporal and capacity decorators, plus a thin Elixir implem
 
 | File | Description |
 |------|-------------|
-| `booking-reservation.tundra` | Canonical Tundra model |
+| `booking-reservation.tundra` | Canonical Tundra model (YAML) |
 | `booking.ex` | Implementation — States as atoms, one function per Process |
 | `booking_scenarios.exs` | Executable Scenarios from the model |
 

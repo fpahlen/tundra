@@ -1,55 +1,82 @@
-Tundra: Content publishing lifecycle
+# Canonical Tundra model (YAML). See tundra.md for the language definition.
 
-  Roles:
-    - Writer
-    - Editor
-    - Reader
+tundra: Content publishing lifecycle
 
-  Relationships:
-    - Writer is Author of Article
-    - Editor is Assignee of Article
+roles:
+  - Writer
+  - Editor
+  - Reader
 
-  Contracts:
-    - Only a Writer may create and edit a Draft
-    - An Article may be submitted for review only while it is in Draft
-    - Only an Editor may approve or reject a submitted Article
-    - An Article becomes visible to Readers only after it is Published
-    - A published Article may be unpublished by an Editor, returning it to Draft
+relationships:
+  - Writer is Author of Article
+  - Editor is Assignee of Article
 
-  States:
-    - Article is Draft
-    - Article is Submitted for Review
-        @expires-in 7 days
-    - Article is Published
-    - Article is Rejected
+contracts:
+  - Only a Writer may create and edit a Draft
+  - An Article may be submitted for review only while it is in Draft
+  - Only an Editor may approve or reject a submitted Article
+  - An Article becomes visible to Readers only after it is Published
+  - A published Article may be unpublished by an Editor, returning it to Draft
 
-  Processes:
-    - Create Draft
-    - Edit Draft
-    - Submit for Review
-    - Approve Article
-    - Reject Article
-    - Unpublish Article
+states:
+  - Article is Draft
+  - name: Article is Submitted for Review
+    expires_in: 7 days
+  - Article is Published
+  - Article is Rejected
 
-  Scenario: Happy path – article is reviewed and published
-    Given no Article exists
-    When the Writer creates a Draft
-    Then the Article is Draft
+processes:
+  - name: Create Draft
+    actor: Writer
+    requires: no Article exists
+    results: Article is Draft
 
-    When the Writer submits the Article for review
-    Then the Article is Submitted for Review
+  - name: Edit Draft
+    actor: Writer
+    requires: Article is Draft
+    results: Article is Draft
 
-    When the Editor approves the Article
-    Then the Article is Published
+  - name: Submit for Review
+    actor: Writer
+    requires: Article is Draft
+    results: Article is Submitted for Review
 
-  Scenario: Error – writer tries to publish directly
-    Given the Article is Draft
-    When the Writer tries to publish the Article without review
-    Then the publish is rejected
-    And the Article remains Draft
-    And the contract "Only an Editor may approve or reject a submitted Article" is applied
+  - name: Approve Article
+    actor: Editor
+    requires: Article is Submitted for Review
+    results: Article is Published
 
-  Scenario: Editor unpublishes an article
-    Given the Article is Published
-    When the Editor unpublishes the Article
-    Then the Article is Draft
+  - name: Reject Article
+    actor: Editor
+    requires: Article is Submitted for Review
+    results: Article is Rejected
+
+  - name: Unpublish Article
+    actor: Editor
+    requires: Article is Published
+    results: Article is Draft
+
+scenarios:
+  - name: "Happy path: article is reviewed and published"
+    steps:
+      - Given no Article exists
+      - When the Writer creates a Draft
+      - Then the Article is Draft
+      - When the Writer submits the Article for review
+      - Then the Article is Submitted for Review
+      - When the Editor approves the Article
+      - Then the Article is Published
+
+  - name: "Error: writer tries to publish directly"
+    steps:
+      - Given the Article is Draft
+      - When the Writer tries to publish the Article without review
+      - Then the publish is rejected
+      - And the Article remains Draft
+      - And the contract "Only an Editor may approve or reject a submitted Article" is applied
+
+  - name: "Editor unpublishes an article"
+    steps:
+      - Given the Article is Published
+      - When the Editor unpublishes the Article
+      - Then the Article is Draft

@@ -1,12 +1,12 @@
 # Example: Consultant hours to client invoice
 
-Canonical model plus thin reference implementations (happy path and error paths).
+Canonical YAML model plus thin reference implementations (happy path and error paths).
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `consultant-hours-invoice.tundra` | Canonical Tundra model (source of truth) |
+| `consultant-hours-invoice.tundra` | Canonical Tundra model (YAML; source of truth) |
 | `demo.py` | Python: Roles, per-subject state, Contracts, three Scenarios |
 | `demo.c` | ANSI C twin of the same Scenarios |
 
@@ -14,7 +14,7 @@ Canonical model plus thin reference implementations (happy path and error paths)
 
 - **Roles** are first-class (actor parameter on every Process)
 - **Relationships** (Owner / Creator / Recipient)
-- **Hours** and **Invoice** are separate state machines (subject named in the model)
+- **Hours** and **Invoice** are separate state machines
 - **Contracts** fail fast with the Contract text from the model
 - **Error Scenarios** show `contract … is broken` behaviour in code
 

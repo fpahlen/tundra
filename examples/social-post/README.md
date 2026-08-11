@@ -6,7 +6,7 @@ Model-only example of posts, followers, reactions, and moderation.
 
 | File | Description |
 |------|-------------|
-| `social-post.tundra` | Canonical Tundra model |
+| `social-post.tundra` | Canonical Tundra model (YAML) |
 
 ## Illustrates
 

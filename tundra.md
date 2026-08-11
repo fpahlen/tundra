@@ -9,12 +9,19 @@ As AI writes more of the code, durable knowledge must live *above* the code. Tun
 Models are deliberately thin.  
 A whole system is normally made of many small models rather than one large model.
 
-Files use the suffix `.tundra`.
+**Files use the suffix `.tundra` and contain YAML** (pretty style: English as leaf values, light structure for Processes and Scenarios).
 
 ## Examples
 
 Worked models live under [`examples/`](examples/).  
 See [`examples/README.md`](examples/README.md) for the full catalog.
+
+**Schema & check:** [`schema/tundra.schema.json`](schema/tundra.schema.json) · [`tools/check_tundra.py`](tools/check_tundra.py)
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 tools/check_tundra.py --all
+```
 
 ---
 
@@ -79,11 +86,11 @@ States make progress visible and checkable.
 
 The named transformations that move a subject from one State to another.
 
-Each Process should declare:
+Each Process must declare:
 
-- **Actor** — which Role (or `System` for automatic steps) performs it  
-- **Requires** — precondition State(s) or a short condition tied to a Contract  
-- **Results** — resulting State(s)
+- **actor** — which Role (or `System` for automatic steps) performs it  
+- **requires** — precondition State(s) or a short condition tied to a Contract  
+- **results** — resulting State(s) (string or list)
 
 ### Scenarios
 
@@ -102,252 +109,229 @@ You can add many Scenarios without changing the underlying rules.
 | An actor tries something forbidden | `And the contract "…" is broken` |
 | An automatic rule fires as designed | `And the contract "…" is applied` |
 
+Prefer colons in scenario names: `"Happy path: …"`, `"Error: …"`.
+
 ---
 
 ## Decorators
 
-The six core concepts cover most business knowledge.  
-When they are not enough, Tundra provides temporal and aggregational decorators.
+Optional fields on States or Processes when core concepts are not enough.
 
-### Temporal decorators
+### Temporal
 
-| Decorator | Where | Meaning | Example |
-|-----------|-------|---------|---------|
-| `@before` | Process | Allowed only before a point in time | `@before start time` |
-| `@after` | Process | Allowed only after a point in time | `@after end time` |
-| `@expires-in` | State | State ends automatically after a duration | `@expires-in 15 minutes` |
-| `@within` | Process | Allowed only inside a relative window | `@within 24 hours before start` |
+| Field | Where | Meaning | Example |
+|-------|-------|---------|---------|
+| `before` | process | Allowed only before a point | `before: start time` |
+| `after` | process | Allowed only after a point | `after: end time` |
+| `expires_in` | state | State ends after a duration | `expires_in: 15 minutes` |
+| `within` | process | Relative window | `within: 24 hours before start` |
 
-### Aggregational decorators
+### Aggregational
 
-| Decorator | Where | Meaning | Example |
-|-----------|-------|---------|---------|
-| `@capacity` | State | Maximum size | `@capacity 12` |
-| `@quantity` | State / Process | Current or required quantity | `@quantity at least 1` |
-| `@contains` | State | Holds a collection | `@contains LineItems` |
+| Field | Where | Meaning | Example |
+|-------|-------|---------|---------|
+| `capacity` | state | Maximum size | `capacity: 1` |
+| `quantity` | state / process | Amount constraint | `quantity: at least 1` |
+| `contains` | state | Collection held | `contains: LineItems` |
 
-Decorators are optional and minimal. Prefer core concepts first.
+Decorators are optional and minimal. Prefer core concepts first.  
+Do not invent decorator names outside this table.
 
 ---
 
-## Exact Output Format
+## Exact output format (YAML)
 
-Every model must use this structure:
+Every model is a YAML document of this shape:
 
-```text
-Tundra: <short name>
+```yaml
+tundra: <short name>
 
-  Roles:
-    - <Role name>
-    - ...
+roles:
+  - <Role name>
 
-  Relationships:
-    - <Role> is <Relationship> of <subject>
-    - ...
+relationships:
+  - <Role> is <Relationship> of <subject>
 
-  Contracts:
-    - <contract 1>
-    - <contract 2>
-    ...
+contracts:
+  - <testable plain-English rule>
 
-  States:
-    - <State that names its subject>
-    - ...
+states:
+  - <Subject is Some state>
+  # or with decorators:
+  - name: <Subject is Some state>
+    expires_in: 15 minutes
 
-  Processes:
-    - <Process name>
-        Actor: <Role or System>
-        Requires: <State or short condition>
-        Results: <State or short outcome>
-    - ...
+processes:
+  - name: <Process name>
+    actor: <Role or System>
+    requires: <State or short condition>   # or a list
+    results: <State or short outcome>      # or a list
+    # optional: before, after, within, quantity, …
 
-  Scenario: <name of happy path>
-    Given ...
-    When the <Role> ...
-    Then ...
-    ...
-
-  Scenario: <name of important error path>
-    Given ...
-    When the <Role> tries to ...
-    Then ...
-    And the contract "..." is broken
+scenarios:
+  - name: "Happy path: …"
+    steps:
+      - Given …
+      - When the <Role> …
+      - Then …
+  - name: "Error: …"
+    steps:
+      - Given …
+      - When the <Role> tries to …
+      - Then …
+      - And the contract "…" is broken
 ```
 
-`Actor`, `Requires`, and `Results` are plain English under each Process.  
-They are required for quality house models and for extract/implement prompts; they keep transitions explicit without turning Tundra into a programming language.
+Structural rules are enforced by [`schema/tundra.schema.json`](schema/tundra.schema.json).
 
 ---
 
-## Good Example
+## Good example
 
-```text
-Tundra: Consultant hours to client invoice
+```yaml
+tundra: Consultant hours to client invoice
 
-  Roles:
-    - Consultant
-    - Manager
-    - Client
+roles:
+  - Consultant
+  - Manager
+  - Client
 
-  Relationships:
-    - Consultant is Owner of Hours
-    - Manager is Creator of Invoice
-    - Client is Recipient of Invoice
+relationships:
+  - Consultant is Owner of Hours
+  - Manager is Creator of Invoice
+  - Client is Recipient of Invoice
 
-  Contracts:
-    - Hours may be edited by the Consultant only while they are in Draft
-    - Once hours are Submitted they become immutable for the Consultant
-    - An invoice may be created only from Submitted hours that have not already been invoiced
-    - Only the Client may Approve or Dispute an open invoice
-    - Only the Manager may create an invoice
+contracts:
+  - Hours may be edited by the Consultant only while they are in Draft
+  - Once hours are Submitted they become immutable for the Consultant
+  - An invoice may be created only from Submitted hours that have not already been invoiced
+  - Only the Client may Approve or Dispute an open invoice
+  - Only the Manager may create an invoice
 
-  States:
-    - Hours are in Draft
-    - Hours are Submitted
-    - Hours are Invoiced
-    - Invoice is Open
-    - Invoice is Approved
-    - Invoice is Disputed
+states:
+  - Hours are in Draft
+  - Hours are Submitted
+  - Hours are Invoiced
+  - Invoice is Open
+  - Invoice is Approved
+  - Invoice is Disputed
 
-  Processes:
-    - Register Hours
-        Actor: Consultant
-        Requires: no hours exist
-        Results: Hours are in Draft
-    - Edit Hours
-        Actor: Consultant
-        Requires: Hours are in Draft
-        Results: Hours are in Draft
-    - Submit Hours
-        Actor: Consultant
-        Requires: Hours are in Draft
-        Results: Hours are Submitted
-    - Create Invoice
-        Actor: Manager
-        Requires: Hours are Submitted
-        Results: Invoice is Open; Hours are Invoiced
-    - Approve Invoice
-        Actor: Client
-        Requires: Invoice is Open
-        Results: Invoice is Approved
-    - Dispute Invoice
-        Actor: Client
-        Requires: Invoice is Open
-        Results: Invoice is Disputed
+processes:
+  - name: Register Hours
+    actor: Consultant
+    requires: no hours exist
+    results: Hours are in Draft
+  - name: Edit Hours
+    actor: Consultant
+    requires: Hours are in Draft
+    results: Hours are in Draft
+  - name: Submit Hours
+    actor: Consultant
+    requires: Hours are in Draft
+    results: Hours are Submitted
+  - name: Create Invoice
+    actor: Manager
+    requires: Hours are Submitted
+    results:
+      - Invoice is Open
+      - Hours are Invoiced
+  - name: Approve Invoice
+    actor: Client
+    requires: Invoice is Open
+    results: Invoice is Approved
+  - name: Dispute Invoice
+    actor: Client
+    requires: Invoice is Open
+    results: Invoice is Disputed
 
-  Scenario: Happy path – hours submitted and invoice approved
-    Given no hours exist
-    When the Consultant registers hours
-    Then the Hours are in Draft
+scenarios:
+  - name: "Happy path: hours submitted and invoice approved"
+    steps:
+      - Given no hours exist
+      - When the Consultant registers hours
+      - Then the Hours are in Draft
+      - When the Consultant submits the hours
+      - Then the Hours are Submitted
+      - And the hours can no longer be edited by the Consultant
+      - When the Manager creates an invoice from the submitted hours
+      - Then the Invoice is Open
+      - And the Hours are Invoiced
+      - When the Client approves the invoice
+      - Then the Invoice is Approved
 
-    When the Consultant submits the hours
-    Then the Hours are Submitted
-    And the hours can no longer be edited by the Consultant
+  - name: "Error: Consultant tries to edit hours after submission"
+    steps:
+      - Given the Hours are Submitted
+      - When the Consultant tries to edit the hours
+      - Then the edit is rejected
+      - And the Hours remain Submitted
+      - And the contract "Hours may be edited by the Consultant only while they are in Draft" is broken
 
-    When the Manager creates an invoice from the submitted hours
-    Then the Invoice is Open
-    And the Hours are Invoiced
-
-    When the Client approves the invoice
-    Then the Invoice is Approved
-
-  Scenario: Error – Consultant tries to edit hours after submission
-    Given the Hours are Submitted
-    When the Consultant tries to edit the hours
-    Then the edit is rejected
-    And the Hours remain Submitted
-    And the contract "Hours may be edited by the Consultant only while they are in Draft" is broken
-
-  Scenario: Error – Consultant tries to create an invoice
-    Given the Hours are Submitted
-    When the Consultant tries to create an invoice
-    Then invoice creation is rejected
-    And the Hours remain Submitted
-    And the contract "Only the Manager may create an invoice" is broken
+  - name: "Error: Consultant tries to create an invoice"
+    steps:
+      - Given the Hours are Submitted
+      - When the Consultant tries to create an invoice
+      - Then invoice creation is rejected
+      - And the Hours remain Submitted
+      - And the contract "Only the Manager may create an invoice" is broken
 ```
 
+Full file: [`examples/consultant-hours/consultant-hours-invoice.tundra`](examples/consultant-hours/consultant-hours-invoice.tundra).
+
 ---
 
-## Counter-Examples (what to avoid)
+## Counter-examples (what to avoid)
 
-**Bad: Vague or missing Contracts**
-```text
-Contracts:
+**Bad: Vague Contracts**
+```yaml
+contracts:
   - The system should be secure
-  - Users can do things
   - The loan is too high relative to income
 ```
-→ Too vague. A Contract must be specific enough that a clear automated test can be written (thresholds, named conditions, explicit roles).
+→ Every Contract must be precise enough to test (thresholds, named conditions, explicit roles).
 
-**Bad: Roles hidden only inside Contracts**
-```text
-Contracts:
-  - The person who registered the hours can edit them until submission
-```
-→ Declare the Role (“Consultant”) explicitly in the Roles section.
+**Bad: Roles only buried in Contracts**  
+→ Declare the Role under `roles:`.
 
-**Bad: Inventing knowledge**
-Creating States or Contracts that were never mentioned by the human.  
-→ Always ask a clarifying question instead.
+**Bad: Inventing knowledge**  
+→ Ask clarifying questions instead.
 
-**Bad: Fat models**
-Putting authentication, invoicing, reporting and user management into one giant file.  
+**Bad: Fat models**  
 → Prefer many small, focused models.
 
-**Bad: Processes without Actor / Requires / Results**
-A bare list of process names forces implementers to guess transitions.  
-→ State who acts, what must already be true, and what changes.
-
-**Bad: Inconsistent naming across models**
-Calling the same actor “User” in one model and “Customer” in another without reason.  
-→ Reuse existing Role names whenever possible.
+**Bad: Processes without actor / requires / results**  
+```yaml
+processes:
+  - Submit Hours   # invalid
+```
+→ Use a map with `name`, `actor`, `requires`, `results`.
 
 **Bad: Embedding code in the model**
-```text
-Contracts:
+```yaml
+contracts:
   - Only a platform admin may suspend a Listing
-      guard:
-        sql: exists (select 1 from users ...)
+    # guard: / sql: / python:  — not allowed
 ```
-→ Keep the model plain English. Express the rule as a precise Contract; let implementations encode the check.
+→ Keep Contracts plain English.
+
+**Bad: Non-YAML hybrid dialects**  
+→ Do not use `Tundra:` / `Scenario:` prose blocks. Models are YAML only.
 
 ---
 
-## Key Rules
+## Key rules
 
-1. **Never invent important knowledge.**  
-   If something is unclear, ask a clarifying question.
-
+1. **Never invent important knowledge.** Ask when unclear.  
 2. **Prefer thin models.**  
-   Only include what is needed for the described behaviour.
-
-3. **Contracts are plain language and testable.**  
-   A non-programmer must be able to challenge them; a test must be able to check them.  
-   Do not embed SQL, Python, or other executable code in the model.
-
+3. **Contracts are plain language and testable.** No embedded code.  
 4. **Roles are first-class.**  
-   Declare them explicitly. A person can hold multiple Roles.
-
 5. **Relationships are first-class.**  
-   Declare named connections between Roles or between a Role and a subject.  
-   Reference them from Contracts and Processes instead of using ad-hoc phrases.
-
-6. **Every State must name its subject.**  
-   Write “Application is Automatically approved”, not just “Automatically approved”.
-
-7. **Processes declare Actor, Requires, and Results.**  
-   Use a declared Role or `System` as Actor.
-
-8. **Consistency across models.**  
-   When existing models are provided, treat their Roles, Relationships and Contracts as authoritative.  
-   Do not silently create near-synonyms.
-
-9. **Scenarios demonstrate the Contracts.**  
-   At least one happy-path Scenario and the most important error Scenarios should be present.  
-   Use `is broken` for forbidden actions and `is applied` for automatic rules that fire correctly.
-
-10. **Decorators are optional and minimal.**  
-    Use temporal and aggregational decorators only when the core concepts are not enough.
+6. **Every State names its subject.**  
+7. **Processes declare actor, requires, and results.** Actor is a Role or `System`.  
+8. **Consistency across models.** No silent near-synonyms.  
+9. **Scenarios demonstrate Contracts.** Use `is broken` / `is applied` appropriately.  
+10. **Decorators are optional and minimal** — only the fields listed above.  
+11. **Models are valid YAML** and should pass `tools/check_tundra.py`.
 
 ---
 
@@ -356,14 +340,12 @@ Contracts:
 | Tundra | In code |
 |--------|---------|
 | Role | Actor type / enum passed into process functions |
-| Relationship | Ownership / association checks before a Process is allowed |
+| Relationship | Ownership / association checks |
 | Contract | Fail-fast check; error message quotes the Contract text |
-| State | Enum (or equivalent) **per subject** — do not collapse unrelated subjects into one enum |
-| Process | One function/method; guard with Actor + Requires; return Results |
-| Decorator | Time windows, capacity, quantity, or collection fields |
+| State | Enum (or equivalent) **per subject** |
+| Process | One function/method; guard with actor + requires; return results |
+| Decorator | Time / capacity / quantity fields |
 | Scenario | Executable test or demo script |
-
-Roles are not decoration: if a Contract says “Only the Manager may…”, the implementation must take an actor and reject the wrong Role.
 
 ---
 
@@ -395,20 +377,11 @@ Fuller map: [`docs/scope-and-blindspots.md`](docs/scope-and-blindspots.md).
 
 ---
 
-## Background and Principles
+## Background and principles
 
 Tundra is heavily inspired by the ideas in *The Pragmatic Programmer* by Dave Thomas and Andy Hunt.
 
-Key principles from the book that shaped it:
-
-- **Easy to Change (ETC)** – The primary measure of design quality. Knowledge must be localized so that a change has minimal ripple effects.
-- **DRY (Don’t Repeat Yourself)** – Every piece of knowledge must have a single, authoritative representation.
-- **Design by Contract** – Obligations between parties should be explicit. Violations should be detected early and clearly.
-- **No Coincidence** – Code (and models) should work because of deliberate design, not because of accidental conditions.
-- **Tracer Bullets / Feedback** – Prefer thin, end-to-end paths that give real feedback early (this is why Scenarios exist).
-- **Orthogonality** – Keep unrelated things independent so they can change independently.
-
-For deeper reading, see:
+Key principles: Easy to Change (ETC), DRY, Design by Contract, No Coincidence, Tracer Bullets / Feedback, Orthogonality.
 
 > Dave Thomas & Andy Hunt  
 > *The Pragmatic Programmer: Your Journey to Mastery*  

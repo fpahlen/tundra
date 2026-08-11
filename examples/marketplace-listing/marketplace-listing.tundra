@@ -1,74 +1,110 @@
-Tundra: Marketplace listing and sale
+# Canonical Tundra model (YAML). See tundra.md for the language definition.
 
-  Roles:
-    - Seller
-    - Buyer
-    - Platform
+tundra: Marketplace listing and sale
 
-  Relationships:
-    - Seller is Owner of Listing
-    - Buyer is Offeror of Offer
-    - Buyer is Party to Sale
-    - Seller is Party to Sale
-    - Platform is Moderator of Listing
+roles:
+  - Seller
+  - Buyer
+  - Platform
+  - System
 
-  Contracts:
-    - Only a Seller may create and edit their own Listing
-    - A Listing may receive Offers only while it is Active
-    - Only the Seller may accept or reject an Offer
-    - Once an Offer is accepted, the Listing is no longer Active
-    - Only a Platform administrator may suspend a Listing
-    - Payment must be confirmed before a Sale is marked Complete
+relationships:
+  - Seller is Owner of Listing
+  - Buyer is Offeror of Offer
+  - Buyer is Party to Sale
+  - Seller is Party to Sale
+  - Platform is Moderator of Listing
 
-  States:
-    - Listing is Draft
-    - Listing is Active
-    - Listing is Suspended
-    - Offer is Made
-    - Offer is Accepted
-    - Offer is Rejected
-    - Sale is Awaiting Payment
-        @expires-in 48 hours
-    - Sale is Complete
-    - Sale is Cancelled
+contracts:
+  - Only a Seller may create and edit their own Listing
+  - A Listing may receive Offers only while it is Active
+  - Only the Seller may accept or reject an Offer
+  - Once an Offer is accepted, the Listing is no longer Active
+  - Only a Platform administrator may suspend a Listing
+  - Payment must be confirmed before a Sale is marked Complete
 
-  Processes:
-    - Create Listing
-    - Publish Listing
-    - Make Offer
-    - Accept Offer
-    - Reject Offer
-    - Confirm Payment
-    - Suspend Listing
-    - Cancel Sale
-        @before Complete
+states:
+  - Listing is Draft
+  - Listing is Active
+  - Listing is Suspended
+  - Offer is Made
+  - Offer is Accepted
+  - Offer is Rejected
+  - name: Sale is Awaiting Payment
+    expires_in: 48 hours
+  - Sale is Complete
+  - Sale is Cancelled
 
-  Scenario: Happy path – listing sold
-    Given no Listing exists
-    When the Seller creates a Listing
-    Then the Listing is Draft
+processes:
+  - name: Create Listing
+    actor: Seller
+    requires: no Listing exists
+    results: Listing is Draft
 
-    When the Seller publishes the Listing
-    Then the Listing is Active
+  - name: Publish Listing
+    actor: Seller
+    requires: Listing is Draft
+    results: Listing is Active
 
-    When a Buyer makes an Offer
-    Then an Offer is Made
+  - name: Make Offer
+    actor: Buyer
+    requires: Listing is Active
+    results: Offer is Made
 
-    When the Seller accepts the Offer
-    Then the Offer is Accepted
-    And the Listing is no longer Active
-    And the Sale is Awaiting Payment
+  - name: Accept Offer
+    actor: Seller
+    requires: Offer is Made
+    results:
+      - Offer is Accepted
+      - Sale is Awaiting Payment
 
-    When payment is confirmed
-    Then the Sale is Complete
+  - name: Reject Offer
+    actor: Seller
+    requires: Offer is Made
+    results: Offer is Rejected
 
-  Scenario: Error – buyer offers on suspended listing
-    Given the Listing is Suspended
-    When a Buyer tries to make an Offer
-    Then the offer is rejected
-    And the contract "A Listing may receive Offers only while it is Active" is broken
+  - name: Confirm Payment
+    actor: System
+    requires: Sale is Awaiting Payment
+    results: Sale is Complete
 
-  Scenario: Platform suspends a listing
-    Given the Listing is Active
-    When the Platform suspends the Listing
-    Then the Listing is Suspended
+  - name: Suspend Listing
+    actor: Platform
+    requires: Listing is Active
+    results: Listing is Suspended
+
+  - name: Cancel Sale
+    actor: Seller
+    requires: Sale is Awaiting Payment
+    results: Sale is Cancelled
+    before: Complete
+
+scenarios:
+  - name: "Happy path: listing sold"
+    steps:
+      - Given no Listing exists
+      - When the Seller creates a Listing
+      - Then the Listing is Draft
+      - When the Seller publishes the Listing
+      - Then the Listing is Active
+      - When a Buyer makes an Offer
+      - Then an Offer is Made
+      - When the Seller accepts the Offer
+      - Then the Offer is Accepted
+      - And the Listing is no longer Active
+      - And the Sale is Awaiting Payment
+      - When payment is confirmed
+      - Then the Sale is Complete
+
+  - name: "Error: buyer offers on suspended listing"
+    steps:
+      - Given the Listing is Suspended
+      - When a Buyer tries to make an Offer
+      - Then the offer is rejected
+      - And the contract "A Listing may receive Offers only while it is Active" is broken
+
+  - name: "Platform suspends a listing"
+    steps:
+      - Given the Listing is Active
+      - When the Platform suspends the Listing
+      - Then the Listing is Suspended

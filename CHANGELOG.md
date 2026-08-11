@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.4
+
+- **YAML is the model format** (pretty style); `.tundra` files contain YAML
+- JSON Schema: `schema/tundra.schema.json`
+- Checker: `tools/check_tundra.py` (+ `requirements-dev.txt`)
+- VS Code: `*.tundra` associated with YAML
+- All examples + skill example converted; Process structure on every model
+- Decorators as named YAML fields (`expires_in`, `before`, …)
+- Scenario names use colons (`Happy path: …`)
+
+
 ## v1.3
 
 - Language definition lives in **`tundra.md`**; root `README.md` is a thin entry map

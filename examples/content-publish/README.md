@@ -6,7 +6,7 @@ Model-only editorial workflow: draft → review → publish.
 
 | File | Description |
 |------|-------------|
-| `content-publish.tundra` | Canonical Tundra model |
+| `content-publish.tundra` | Canonical Tundra model (YAML) |
 
 ## Illustrates
 

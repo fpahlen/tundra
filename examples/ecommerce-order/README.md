@@ -6,7 +6,7 @@ Model-only example of cart → order → payment → shipment.
 
 | File | Description |
 |------|-------------|
-| `ecommerce-order.tundra` | Canonical Tundra model |
+| `ecommerce-order.tundra` | Canonical Tundra model (YAML) |
 
 ## Illustrates
 

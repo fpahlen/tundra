@@ -1,6 +1,9 @@
 # Examples
 
-Each subfolder is one complete Tundra example. The `.tundra` file in that folder is the **canonical model** (there is no separate `models/` tree).
+Each subfolder is one complete Tundra example. The `.tundra` file in that folder is the **canonical model** (YAML). There is no separate `models/` tree.
+
+Structural schema: [`../schema/tundra.schema.json`](../schema/tundra.schema.json)  
+Checker: `python3 tools/check_tundra.py --all` (from repo root; see [`../requirements-dev.txt`](../requirements-dev.txt))
 
 | Folder | Domain | Illustrates | Code |
 |--------|--------|-------------|------|
@@ -14,13 +17,13 @@ Each subfolder is one complete Tundra example. The `.tundra` file in that folder
 
 ## How to use with prompts
 
-1. Read [`../tundra.md`](../tundra.md) for the language definition.
-2. Point extract / validate / implement at the relevant `examples/*/…​.tundra` files for style and naming consistency.
+1. Read [`../tundra.md`](../tundra.md) for the language definition (YAML).
+2. Point extract / validate / implement at the relevant `examples/*/*.tundra` files for style and naming consistency.
 3. Prefer reusing Role and Relationship vocabulary from an example in the same domain over inventing near-synonyms.
 
 ## Adding a new example
 
 1. Create `examples/<short-kebab-name>/`.
-2. Add `<name>.tundra` following the format in `tundra.md`.
-3. Add a short `README.md` (what it covers; how to run code if any).
-4. Link it in the table above.
+2. Add `<name>.tundra` as **YAML** following [`../tundra.md`](../tundra.md).
+3. Run `python3 tools/check_tundra.py examples/<short-kebab-name>/`.
+4. Add a short `README.md` and link it in the table above.
