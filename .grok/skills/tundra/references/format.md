@@ -85,7 +85,7 @@ scenarios:
 5. Every State names its subject.  
 6. Processes declare name, actor, requires, results.  
 7. Scenarios demonstrate Contracts.  
-8. Output valid YAML only (not hybrid prose dialects).
+8. Output valid YAML only (shape in this file / `tundra.md`).
 
 ## Map to code
 

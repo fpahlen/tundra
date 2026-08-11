@@ -12,7 +12,7 @@ Always follow `format.md` in this folder.
 ### 1. YAML / structure
 - Valid YAML matching the shape in `format.md` (and `schema/tundra.schema.json` when available).
 - Processes have `name`, `actor`, `requires`, `results`.
-- No hybrid prose dialect (`Tundra:`, bare `Scenario:` blocks).
+- Valid YAML matching `format.md` (and the JSON Schema when available).
 
 ### 2. Testability of Contracts
 - Flag vague language (“too high”, “reasonable”, “high relative to”, “falls between”, …).

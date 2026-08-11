@@ -10,8 +10,8 @@ Model-only example of cart → order → payment → shipment.
 
 ## Illustrates
 
-- Aggregational decorators (`@contains`, `@quantity`)
-- Cancel window via `@before Shipped`
+- Aggregational decorators (`contains`, `quantity`)
+- Cancel window via `before: Shipped`
 - Multi-role flow: Customer, Merchant, Payment Provider
 
 ## See also

@@ -3,7 +3,7 @@
 Tundra does not try to be a perfect methodology for every software project.  
 This note is for humans (and AIs) who want to know **what it optimizes for**, **what it leaves out**, and **what to use alongside it**.
 
-The short version lives in the [README](../tundra.md#scope-and-blindspots). This page is the fuller map.
+The short version lives in [`tundra.md` (Scope and blindspots)](../tundra.md#scope-and-blindspots). This page is the fuller map.
 
 ---
 
@@ -214,7 +214,7 @@ Tundra operationalizes well for **domain rules**:
 - Tracer Bullets (Scenarios)  
 - Orthogonality (separate models)  
 
-Less served by the five concepts alone:
+Less served by the six concepts alone:
 
 - Reversibility of *rule and data* evolution  
 - Runtime orthogonality (independent failure)  
@@ -230,7 +230,7 @@ Tundra is a **focused operationalization** of a subset of good practice, not a r
 
 1. Use Tundra where **obligations and lifecycles** are the knowledge you keep losing.  
 2. Keep Contracts testable and process-shaped; do not smuggle SLOs or vibes into them.  
-3. When a blindspot is material to *your* system, create a **companion artifact** — do not grow the five concepts into twelve.  
+3. When a blindspot is material to *your* system, create a **companion artifact** — do not grow the six concepts into twelve.  
 4. In interviews or workshops, after the Tundra model is solid, ask:  
    - What must always be true about the **data**?  
    - What do we **log** for audit?  

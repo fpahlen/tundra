@@ -46,7 +46,7 @@ Always follow `tundra.md`. Output **YAML** only.
 
 8. **Decorators** only as fields listed in `tundra.md` (`expires_in`, `capacity`, `quantity`, `contains`, `before`, `after`, `within`).
 
-9. **Do not embed code** (`guard:`, SQL, Python) in the model.
+9. **Do not embed executable code** (SQL, Python, etc.) in the model.
 
 10. Prefer thin models; reuse vocabulary from existing models / good examples.
 

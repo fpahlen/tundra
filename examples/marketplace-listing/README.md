@@ -11,8 +11,8 @@ Model-only example of listing, offers, sale, and platform moderation.
 ## Illustrates
 
 - Multi-party Relationships (Owner, Offeror, Party to Sale, Moderator)
-- Temporal expiry on awaiting payment (`@expires-in 48 hours`)
-- Platform administrator suspend rule as a plain Contract (no embedded code)
+- Temporal expiry on awaiting payment (`expires_in: 48 hours`)
+- Platform administrator suspend rule as a plain Contract
 
 ## See also
 

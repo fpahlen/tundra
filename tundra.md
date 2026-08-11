@@ -306,16 +306,16 @@ processes:
 ```
 → Use a map with `name`, `actor`, `requires`, `results`.
 
-**Bad: Embedding code in the model**
+**Bad: Embedding executable code in the model**
 ```yaml
 contracts:
   - Only a platform admin may suspend a Listing
-    # guard: / sql: / python:  — not allowed
+    # Do not attach SQL, Python, or other implementations here
 ```
-→ Keep Contracts plain English.
+→ Keep Contracts plain English; encode checks in generated code.
 
-**Bad: Non-YAML hybrid dialects**  
-→ Do not use `Tundra:` / `Scenario:` prose blocks. Models are YAML only.
+**Bad: Invalid or non-YAML structure**  
+→ Models must be valid YAML matching the format above (and `schema/tundra.schema.json`).
 
 ---
 

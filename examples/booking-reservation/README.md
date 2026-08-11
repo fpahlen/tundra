@@ -23,7 +23,7 @@ elixir booking_scenarios.exs
 | States | Atoms (`:pending`, `:confirmed`, …) |
 | Processes | Functions returning `{:ok, state}` or `{:error, contract_text}` |
 | Contracts | Checked explicitly; error message is the Contract text |
-| Temporal decorators | Guards on `DateTime` arguments (`@before`, `@after`, `@within`) |
+| Temporal decorators | Checks on `DateTime` arguments (`before`, `after`, `within`) |
 | Capacity | Field on the time-slot map |
 
 ## See also

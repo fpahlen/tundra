@@ -11,7 +11,7 @@ Model-only editorial workflow: draft → review → publish.
 ## Illustrates
 
 - Writer / Editor / Reader Roles and Relationships
-- Review queue with `@expires-in 7 days`
+- Review queue with `expires_in: 7 days`
 - Unpublish returning an Article to Draft
 
 ## See also
