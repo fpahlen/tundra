@@ -8,7 +8,7 @@ When the full repo is available, prefer `tundra.md` and `schema/tundra.schema.js
 ## Six concepts
 
 | Concept | Meaning |
-|---------|---------|
+| --- | --- |
 | **Roles** | Named actors (a person can hold several) |
 | **Relationships** | Named connections (“A is X of B”, or short form “Author of Post”) |
 | **Contracts** | Authoritative, testable rules — single source of truth |
@@ -19,7 +19,7 @@ When the full repo is available, prefer `tundra.md` and `schema/tundra.schema.js
 ## Decorators (optional fields)
 
 | Field | On | Example |
-|-------|-----|---------|
+| --- | --- | --- |
 | `expires_in` | state | `expires_in: 15 minutes` |
 | `capacity` | state | `capacity: 1` |
 | `quantity` | state / process | `quantity: at least 1` |
@@ -67,12 +67,13 @@ scenarios:
       - When the <Role> tries to ...
       - Then ...
       - And the contract "..." is broken
+
 ```
 
 ## Scenario vocabulary
 
 | Situation | Phrase |
-|-----------|--------|
+| --- | --- |
 | Forbidden action | `is broken` |
 | Automatic rule fires correctly | `is applied` |
 
@@ -90,7 +91,7 @@ scenarios:
 ## Map to code
 
 | Tundra | Code |
-|--------|------|
+| --- | --- |
 | Role | Actor param / enum |
 | Relationship | Ownership / association checks |
 | Contract | Fail-fast; message quotes Contract text |

@@ -26,6 +26,7 @@ Self-contained references live next to this file:
 <skill_dir>/references/validate.md
 <skill_dir>/references/implement.md
 <skill_dir>/references/example.tundra
+
 ```
 
 Resolve `<skill_dir>` as the directory containing this `SKILL.md` (from system context).  
@@ -39,7 +40,7 @@ Use `references/example.tundra` as the clean few-shot shape when helpful.
 Infer mode from the user message / slash args. Default: **extract** (interview).
 
 | Mode | Triggers | Reference |
-|------|----------|-----------|
+| --- | --- | --- |
 | **extract** / **interview** | messy feature talk, “model this”, no mode, `extract`, `interview` | `extract.md` |
 | **validate** | `validate`, quality check, “is this model ok” | `validate.md` |
 | **implement** | `implement`, “generate code from …”, language named | `implement.md` |
@@ -102,6 +103,7 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 /tundra interview consultant submits hours, manager invoices, client approves
 /tundra validate examples/
 /tundra implement examples/consultant-hours/consultant-hours-invoice.tundra python
+
 ```
 
 Models are **YAML** in `.tundra` files (see `format.md`).

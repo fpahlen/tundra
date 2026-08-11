@@ -10,26 +10,32 @@ Always follow `format.md` in this folder.
 ## What you must check
 
 ### 1. YAML / structure
+
 - Valid YAML matching the shape in `format.md` (and `schema/tundra.schema.json` when available).
 - Processes have `name`, `actor`, `requires`, `results`.
 - Valid YAML matching `format.md` (and the JSON Schema when available).
 
 ### 2. Testability of Contracts
+
 - Flag vague language (“too high”, “reasonable”, “high relative to”, “falls between”, …).
 - Primary quality gate.
 
 ### 3. States name their subject
 
 ### 4. Relationships
+
 - Declared when needed; no use of undeclared relationships.
 
 ### 5. Process actors
+
 - Actor is a declared Role or `System`.
 
 ### 6. Decorators
+
 - Only known fields; sensible placement.
 
 ### 7. Completeness & consistency
+
 - Scenarios cover Contracts; states reachable; roles used; no contradictions.
 - Vocabulary: `is broken` vs `is applied`.
 

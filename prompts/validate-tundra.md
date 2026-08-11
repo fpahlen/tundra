@@ -23,7 +23,6 @@ Always follow `tundra.md`.
 - Valid YAML matching `tundra.md` / the JSON Schema
 - Required keys: `tundra`, `roles`, `contracts`, `states`, `processes`, `scenarios`
 - Processes have `name`, `actor`, `requires`, `results`
-- Valid YAML only (shape in `tundra.md` / the JSON Schema)
 
 ### 2. Testability of Contracts (primary)
 

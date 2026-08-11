@@ -21,6 +21,7 @@ See [`examples/README.md`](examples/README.md) for the full catalog.
 ```bash
 python3 -m pip install -r requirements-dev.txt
 python3 tools/check_tundra.py --all
+
 ```
 
 ---
@@ -30,7 +31,7 @@ python3 tools/check_tundra.py --all
 Most teams either bury rules in code (invisible to non-programmers) or scatter them across tickets and wikis (invisible to machines). Tundra sits in between:
 
 | Audience | What they get |
-|----------|----------------|
+| --- | --- |
 | Humans | Plain language they can read, challenge, and change |
 | AIs | Structure disciplined enough to extract, validate, and implement without inventing rules |
 | Both | A common language for *good* software: explicit knowledge, single source of truth, design by contract |
@@ -105,7 +106,7 @@ You can add many Scenarios without changing the underlying rules.
 **Scenario vocabulary for contracts:**
 
 | Situation | Phrase |
-|-----------|--------|
+| --- | --- |
 | An actor tries something forbidden | `And the contract "…" is broken` |
 | An automatic rule fires as designed | `And the contract "…" is applied` |
 
@@ -120,7 +121,7 @@ Optional fields on States or Processes when core concepts are not enough.
 ### Temporal
 
 | Field | Where | Meaning | Example |
-|-------|-------|---------|---------|
+| --- | --- | --- | --- |
 | `before` | process | Allowed only before a point | `before: start time` |
 | `after` | process | Allowed only after a point | `after: end time` |
 | `expires_in` | state | State ends after a duration | `expires_in: 15 minutes` |
@@ -129,7 +130,7 @@ Optional fields on States or Processes when core concepts are not enough.
 ### Aggregational
 
 | Field | Where | Meaning | Example |
-|-------|-------|---------|---------|
+| --- | --- | --- | --- |
 | `capacity` | state | Maximum size | `capacity: 1` |
 | `quantity` | state / process | Amount constraint | `quantity: at least 1` |
 | `contains` | state | Collection held | `contains: LineItems` |
@@ -180,6 +181,7 @@ scenarios:
       - When the <Role> tries to …
       - Then …
       - And the contract "…" is broken
+
 ```
 
 Structural rules are enforced by [`schema/tundra.schema.json`](schema/tundra.schema.json).
@@ -274,6 +276,7 @@ scenarios:
       - Then invoice creation is rejected
       - And the Hours remain Submitted
       - And the contract "Only the Manager may create an invoice" is broken
+
 ```
 
 Full file: [`examples/consultant-hours/consultant-hours-invoice.tundra`](examples/consultant-hours/consultant-hours-invoice.tundra).
@@ -283,10 +286,12 @@ Full file: [`examples/consultant-hours/consultant-hours-invoice.tundra`](example
 ## Counter-examples (what to avoid)
 
 **Bad: Vague Contracts**
+
 ```yaml
 contracts:
   - The system should be secure
   - The loan is too high relative to income
+
 ```
 → Every Contract must be precise enough to test (thresholds, named conditions, explicit roles).
 
@@ -300,17 +305,21 @@ contracts:
 → Prefer many small, focused models.
 
 **Bad: Processes without actor / requires / results**  
+
 ```yaml
 processes:
   - Submit Hours   # invalid
+
 ```
 → Use a map with `name`, `actor`, `requires`, `results`.
 
 **Bad: Embedding executable code in the model**
+
 ```yaml
 contracts:
   - Only a platform admin may suspend a Listing
     # Do not attach SQL, Python, or other implementations here
+
 ```
 → Keep Contracts plain English; encode checks in generated code.
 
@@ -338,7 +347,7 @@ contracts:
 ## How Tundra maps to code
 
 | Tundra | In code |
-|--------|---------|
+| --- | --- |
 | Role | Actor type / enum passed into process functions |
 | Relationship | Ownership / association checks |
 | Contract | Fail-fast check; error message quotes the Contract text |

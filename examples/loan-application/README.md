@@ -18,7 +18,7 @@ A good validator should flag those. A good extract prompt should ask for measura
 ## Files
 
 | File | Description |
-|------|-------------|
+| --- | --- |
 | `loan-application-entry.tundra` | Deliberately flawed Tundra model (YAML) (see note above) |
 
 ## What still looks “normal”

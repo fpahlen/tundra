@@ -5,7 +5,7 @@ Canonical model with temporal and capacity decorators, plus a thin Elixir implem
 ## Files
 
 | File | Description |
-|------|-------------|
+| --- | --- |
 | `booking-reservation.tundra` | Canonical Tundra model (YAML) |
 | `booking.ex` | Implementation — States as atoms, one function per Process |
 | `booking_scenarios.exs` | Executable Scenarios from the model |
@@ -14,12 +14,13 @@ Canonical model with temporal and capacity decorators, plus a thin Elixir implem
 
 ```bash
 elixir booking_scenarios.exs
+
 ```
 
 ## Mapping
 
 | Tundra | Elixir |
-|--------|--------|
+| --- | --- |
 | States | Atoms (`:pending`, `:confirmed`, …) |
 | Processes | Functions returning `{:ok, state}` or `{:error, contract_text}` |
 | Contracts | Checked explicitly; error message is the Contract text |
