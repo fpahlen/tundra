@@ -19,12 +19,14 @@ Always follow `tundra.md`.
 ## What you must check
 
 ### 1. YAML structure
+
 - Valid YAML matching `tundra.md` / the JSON Schema
 - Required keys: `tundra`, `roles`, `contracts`, `states`, `processes`, `scenarios`
 - Processes have `name`, `actor`, `requires`, `results`
 - Valid YAML only (shape in `tundra.md` / the JSON Schema)
 
 ### 2. Testability of Contracts (primary)
+
 - Flag vague language; every Contract must be testable
 
 ### 3. States name their subject
@@ -38,6 +40,7 @@ Always follow `tundra.md`.
 ### 7. No embedded code
 
 ### 8. Completeness & consistency
+
 - Scenarios vs Contracts; reachable states; role usage; `is broken` / `is applied`
 
 ### 9. Thin-model discipline

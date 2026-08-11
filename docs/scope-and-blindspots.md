@@ -14,7 +14,7 @@ Tundra is excellent at one slice of good long-running software:
 > **Business obligations around who may change what, under which conditions, with visible progress and living examples.**
 
 | Strength | Mechanism |
-|----------|-----------|
+| ---------- | ----------- |
 | Explicit business rules | Contracts |
 | Authorization as domain knowledge | Roles + Process Actor |
 | Lifecycle clarity | States (subject named) + Processes |
@@ -191,7 +191,7 @@ Scenarios are **tracer bullets** (deliberate). They are not:
 Do not expect Tundra to replace:
 
 | Concern | Better home |
-|---------|-------------|
+| --------- | ------------- |
 | Latency, capacity, cost SLOs | SLOs, load tests, capacity plans |
 | Deep security (beyond who may act) | Threat models, controls, review |
 | UX, accessibility, visual design | Design systems, UX research |

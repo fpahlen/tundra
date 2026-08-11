@@ -5,7 +5,7 @@ Model-only example of listing, offers, sale, and platform moderation.
 ## Files
 
 | File | Description |
-|------|-------------|
+| ---- | ----------- |
 | `marketplace-listing.tundra` | Canonical Tundra model (YAML) |
 
 ## Illustrates

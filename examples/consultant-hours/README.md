@@ -5,7 +5,7 @@ Canonical YAML model plus thin reference implementations (happy path and error p
 ## Files
 
 | File | Description |
-|------|-------------|
+| ------ | ------------- |
 | `consultant-hours-invoice.tundra` | Canonical Tundra model (YAML; source of truth) |
 | `demo.py` | Python: Roles, per-subject state, Contracts, three Scenarios |
 | `demo.c` | ANSI C twin of the same Scenarios |
@@ -21,6 +21,7 @@ Canonical YAML model plus thin reference implementations (happy path and error p
 ## Run
 
 **Python**
+
 ```bash
 python3 demo.py              # all scenarios
 python3 demo.py happy
@@ -29,6 +30,7 @@ python3 demo.py error-invoice
 ```
 
 **C**
+
 ```bash
 cc -o demo demo.c
 ./demo                      # all scenarios

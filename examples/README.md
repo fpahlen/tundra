@@ -6,7 +6,7 @@ Structural schema: [`../schema/tundra.schema.json`](../schema/tundra.schema.json
 Checker: `python3 tools/check_tundra.py --all` (from repo root; see [`../requirements-dev.txt`](../requirements-dev.txt))
 
 | Folder | Domain | Illustrates | Code |
-|--------|--------|-------------|------|
+| ------- | ------ | ------------ | ---- |
 | [consultant-hours](consultant-hours/) | Hours → client invoice | Core six concepts + Relationships | Python, C |
 | [loan-application](loan-application/) | Credit decision (BankID, UC) | **Intentional bad model** — untestable Contracts; counter-example / prompt testing | Model only |
 | [booking-reservation](booking-reservation/) | Guest / host booking | Temporal + capacity decorators | Elixir |
