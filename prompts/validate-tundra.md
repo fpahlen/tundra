@@ -9,8 +9,9 @@ Examine one or more `.tundra` YAML models and report quality problems.
 
 1. **`tundra.md`** — language definition  
 2. **`schema/tundra.schema.json`** + **`tools/check_tundra.py`** — structural checks  
-3. **`examples/*/`** — reference corpus; **`loan-application`** is an intentional bad Contracts specimen  
-4. Sibling prompts: extract, implement  
+3. **`examples/*/`** — methodology demos; **`loan-application`** is an intentional bad Contracts specimen  
+4. In **app projects**, product models live under **`models/`** (default validate target)  
+5. Sibling prompts: extract, implement  
 
 Always follow `tundra.md`.
 

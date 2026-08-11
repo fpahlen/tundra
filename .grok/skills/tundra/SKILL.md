@@ -49,6 +49,17 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 
 ---
 
+## Where `.tundra` files live
+
+| Project | Location |
+| --- | --- |
+| **Normal app** (default) | **`models/*.tundra`** (flat). Create `models/` if needed. |
+| **This methodology repo** (has house `examples/` demos) | Demos stay under **`examples/`**. Do not invent product rules into `examples/` unless contributing a demo. |
+
+Never dump models in the repo root. Prefer kebab-case file names.
+
+---
+
 ## Shared rules (all modes)
 
 1. **Never invent** important Roles, Relationships, Contracts, States, or Processes. Ask instead.  
@@ -56,7 +67,7 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 3. **Thin models** — one focused concern per file.  
 4. **Tone:** collaborative, plain language, short. Non-coders should understand model text.  
 5. Do **not** lecture on blindspots unless the user asks or a gap blocks the task.  
-6. Prefer writing files under `examples/<short-name>/` when this repo is the project; otherwise ask where to put `.tundra` files (suggest a focused folder, not a dump into root).  
+6. **Storage:** use `models/` in apps; `examples/` only for methodology demos (see table above).  
 7. After **extract**, offer **validate**. After validate **Ready**, offer **implement**. Do not force the whole loop.
 
 ---
@@ -64,11 +75,13 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 ## Mode: extract / interview
 
 1. Read `format.md` + `extract.md`.  
-2. If existing `*.tundra` files are in the project, list/read them for Role/Contract consistency.  
+2. If existing `*.tundra` files are in the project (especially `models/`), list/read them for Role/Contract consistency.  
 3. From the user’s description, either:  
    - ask **few** clarifying questions (missing actors, vague thresholds, unclear subject), or  
    - write a complete `.tundra` model in the exact format.  
-4. Save to e.g. `examples/<short-name>/<short-name>.tundra` when working in this repo; otherwise a path the human chooses.  
+4. **Save path:**  
+   - App project → `models/<short-name>.tundra` (create `models/` if needed)  
+   - Methodology repo demo → `examples/<short-name>/…` only when contributing a house example  
 5. Show a short summary (Roles + Contracts count + Scenario names), not a wall of theory.  
 6. Ask if they want validate next.
 
@@ -79,7 +92,7 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 ## Mode: validate
 
 1. Read `format.md` + `validate.md`.  
-2. Targets: paths the user named, or all `**/*.tundra` / `examples/**/*.tundra` in the project.  
+2. Targets: paths the user named, else **`models/**/*.tundra`** in app projects, else `examples/**/*.tundra` / all `**/*.tundra` when exploring this methodology repo.  
 3. Produce the validation report structure from `validate.md`.  
 4. Be direct. House models may be deliberate specimens (e.g. intentional vague Contracts) — still report findings; note if the README marks a specimen.  
 5. Ask if they want help fixing issues or implementing a Ready model.
@@ -89,7 +102,7 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 ## Mode: implement
 
 1. Read `format.md` + `implement.md`.  
-2. Require a concrete `.tundra` path (or the model just extracted).  
+2. Require a concrete `.tundra` path (or the model just extracted), typically under `models/`.  
 3. Target language: user-specified, else match the project, else ask (Python is a fine default for demos).  
 4. Implement faithfully: Roles as actors, state **per subject**, Contract fail-fast with Contract text, **all** Scenarios as tests.  
 5. Do not invent rules. If the model is too vague, stop and suggest validate/fix first.  
@@ -101,9 +114,8 @@ If the user only says `/tundra` with no focus, briefly explain the three modes a
 
 ```text
 /tundra interview consultant submits hours, manager invoices, client approves
-/tundra validate examples/
-/tundra implement examples/consultant-hours/consultant-hours-invoice.tundra python
-
+/tundra validate models/
+/tundra implement models/hours-invoice.tundra python
 ```
 
 Models are **YAML** in `.tundra` files (see `format.md`).

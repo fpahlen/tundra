@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.4.1
+
+- **Usage convention:** in app projects, authoritative models live in **`models/*.tundra`** (flat)
+- This methodology repo keeps demos under **`examples/`**
+- Skill, prompts, README, and `tundra.md` document the two-context rule
+- `tools/check_tundra.py --all` also discovers `models/` when present
+
 ## v1.4
 
 - **YAML is the model format** (pretty style); `.tundra` files contain YAML

@@ -1,6 +1,8 @@
 # Examples
 
-Each subfolder is one complete Tundra example. The `.tundra` file in that folder is the **canonical model** (YAML).
+Each subfolder is one complete Tundra **demo**. The `.tundra` file in that folder is the canonical example model (YAML).
+
+In application projects, put product domain models under **`models/*.tundra`** (flat) — not here. See [`../README.md`](../README.md#where-to-put-models-in-your-project).
 
 Structural schema: [`../schema/tundra.schema.json`](../schema/tundra.schema.json)  
 Checker: `python3 tools/check_tundra.py --all` (from repo root; see [`../requirements-dev.txt`](../requirements-dev.txt))

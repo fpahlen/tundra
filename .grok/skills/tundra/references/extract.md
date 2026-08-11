@@ -47,6 +47,10 @@ Always follow `format.md` in this folder (YAML Tundra definition).
 11. Output a complete **YAML** `.tundra` model per `format.md`,  
     **or** a short list of clarifying questions.
 
+12. **Default save location in app projects:** `models/<short-name>.tundra`  
+    (create `models/` if needed; flat files, kebab-case names).  
+    Only use `examples/` when contributing demos to the Tundra methodology repository.
+
 ---
 
 ## Tone

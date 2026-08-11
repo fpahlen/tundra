@@ -5,6 +5,9 @@ Examine one or more `.tundra` YAML models and report quality problems.
 
 Always follow `format.md` in this folder.
 
+**Default targets in app projects:** `models/**/*.tundra` (flat `models/*.tundra` is the usual case).  
+User-named paths always win.
+
 ---
 
 ## What you must check
@@ -13,7 +16,6 @@ Always follow `format.md` in this folder.
 
 - Valid YAML matching the shape in `format.md` (and `schema/tundra.schema.json` when available).
 - Processes have `name`, `actor`, `requires`, `results`.
-- Valid YAML matching `format.md` (and the JSON Schema when available).
 
 ### 2. Testability of Contracts
 

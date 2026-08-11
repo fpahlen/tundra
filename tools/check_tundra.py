@@ -57,12 +57,31 @@ def load_deps():
 
 
 def find_models() -> list[Path]:
+    """Discover models for --all.
+
+    - models/ when present (consumer apps; flat *.tundra by convention)
+    - examples/ when present (methodology demos)
+    - skill example.tundra when present
+    """
     paths: list[Path] = []
-    paths.extend(sorted((ROOT / "examples").rglob("*.tundra")))
+    models_dir = ROOT / "models"
+    if models_dir.is_dir():
+        paths.extend(sorted(models_dir.rglob("*.tundra")))
+    examples_dir = ROOT / "examples"
+    if examples_dir.is_dir():
+        paths.extend(sorted(examples_dir.rglob("*.tundra")))
     skill_ex = ROOT / ".grok" / "skills" / "tundra" / "references" / "example.tundra"
     if skill_ex.is_file():
         paths.append(skill_ex)
-    return paths
+    # de-dupe while preserving order
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for p in paths:
+        rp = p.resolve()
+        if rp not in seen:
+            seen.add(rp)
+            unique.append(p)
+    return unique
 
 
 def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], list[str]]:

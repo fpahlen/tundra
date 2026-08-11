@@ -10,8 +10,9 @@ Turn a `.tundra` **YAML** model into working code and scenario tests.
 1. **`tundra.md`** — language definition  
 2. **`examples/*/`** — style references (`consultant-hours` demos, `booking-reservation` Elixir)  
    Do not implement from `loan-application` without fixing vague Contracts first.  
-3. Sibling prompts: extract, validate  
-4. Optional: `schema/tundra.schema.json`  
+3. In **app projects**, models to implement usually live under **`models/*.tundra`**  
+4. Sibling prompts: extract, validate  
+5. Optional: `schema/tundra.schema.json`  
 
 Always follow `tundra.md`. Stay faithful to the model.
 

@@ -11,17 +11,30 @@ A whole system is normally made of many small models rather than one large model
 
 **Files use the suffix `.tundra` and contain YAML** (pretty style: English as leaf values, light structure for Processes and Scenarios).
 
-## Examples
+## Examples (this repository)
 
-Worked models live under [`examples/`](examples/).  
+Worked demos live under [`examples/`](examples/).  
 See [`examples/README.md`](examples/README.md) for the full catalog.
+
+## Where models live in *your* project
+
+In an application, keep authoritative `.tundra` files under **`models/`**, flat by default:
+
+```text
+models/
+  hours-invoice.tundra
+  order-lifecycle.tundra
+```
+
+Do not scatter product rules under `examples/` — that folder is for demos.  
+Create `models/` if needed; one thin model per file; kebab-case names.
 
 **Schema & check:** [`schema/tundra.schema.json`](schema/tundra.schema.json) · [`tools/check_tundra.py`](tools/check_tundra.py)
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
-python3 tools/check_tundra.py --all
-
+python3 tools/check_tundra.py --all          # this repo: examples + skill sample
+python3 tools/check_tundra.py models/        # your app
 ```
 
 ---

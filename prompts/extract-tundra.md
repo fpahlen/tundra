@@ -11,10 +11,11 @@ Treat the repository as the full context, not only this prompt file.
 
 1. **`tundra.md`** — language definition (YAML format, six concepts, decorators, rules). Single source of truth.
 2. **`schema/tundra.schema.json`** — structural schema for `.tundra` files.
-3. **`examples/README.md`** and **`examples/*/`** — reference models (YAML).  
+3. **`examples/README.md`** and **`examples/*/`** — methodology demos (YAML).  
    Note: `examples/loan-application/` is an **intentional bad model** (vague Contracts) — do not copy its Contract style.
-4. Sibling prompts: `prompts/validate-tundra.md`, `prompts/implement-tundra.md`
-5. Optional: `.grok/skills/tundra/references/`
+4. In **app projects**, product models live under **`models/*.tundra`** (flat). That is the default write/read location.
+5. Sibling prompts: `prompts/validate-tundra.md`, `prompts/implement-tundra.md`
+6. Optional: `.grok/skills/tundra/references/`
 
 Always follow `tundra.md`. Output **YAML** only.
 
@@ -23,8 +24,8 @@ Always follow `tundra.md`. Output **YAML** only.
 ## Input you will receive
 
 - Human description of a business process (may be messy)
-- Zero or more existing `.tundra` models
-- Optionally pointers into `examples/`
+- Zero or more existing `.tundra` models (in apps: prefer `models/`)
+- Optionally pointers into `examples/` (demos) or `models/` (product rules)
 
 ---
 
@@ -57,7 +58,8 @@ Always follow `tundra.md`. Output **YAML** only.
     Use `is broken` / `is applied` appropriately.
 
 12. Output a complete **YAML** `.tundra` model per `tundra.md`,  
-    **or** a short list of clarifying questions.
+    **or** a short list of clarifying questions.  
+    Default path in app projects: `models/<short-name>.tundra` (create `models/` if needed).
 
 ---
 

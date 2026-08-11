@@ -35,13 +35,48 @@ As AI writes more of the code, durable knowledge must live *above* the code. Tun
    ```
 4. In Grok Build: `/tundra interview` (or use `prompts/`).
 
+## Where to put models in *your* project
+
+This repository keeps **demos** under [`examples/`](examples/).  
+In an application you own, put authoritative domain models under **`models/`** (flat):
+
+```text
+your-app/
+  models/                         # source of truth for business rules
+    hours-invoice.tundra
+    order-lifecycle.tundra
+  src/                            # code that implements those rules
+```
+
+- Create `models/` if it does not exist  
+- One thin model per file; kebab-case names  
+- Reuse Role and Relationship names across files in `models/`  
+- Check them with: `python3 tools/check_tundra.py models/` (if you vendor the checker)
+
+Optional snippet for a consumer app’s `AGENTS.md`:
+
+```markdown
+## Domain rules
+- Authoritative business process rules live in `models/*.tundra` (Tundra YAML).
+- Do not invent Roles/Contracts; run /tundra extract or ask the human.
+- Prefer implementing Processes from existing `models/*.tundra` files.
+```
+
 ## Use with Grok Build
+
+**In your app** (default):
 
 ```text
 /tundra interview
+/tundra validate models/
+/tundra implement models/hours-invoice.tundra python
+```
+
+**In this methodology repo** (house demos):
+
+```text
 /tundra validate examples/
 /tundra implement examples/consultant-hours/consultant-hours-invoice.tundra python
-
 ```
 
 Skill path: [`.grok/skills/tundra/`](.grok/skills/tundra/).  
