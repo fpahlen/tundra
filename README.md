@@ -79,8 +79,19 @@ Optional snippet for a consumer app’s `AGENTS.md`:
 /tundra implement examples/consultant-hours/consultant-hours-invoice.tundra python
 ```
 
-Skill path: [`.grok/skills/tundra/`](.grok/skills/tundra/).  
-To install user-wide: copy or symlink that folder into `~/.grok/skills/tundra`.
+Skill path: [`.grok/skills/tundra/`](.grok/skills/tundra/).
+
+**Install user-wide** (so `/tundra` works in any project):
+
+```bash
+# from this repo root — symlink stays up to date with git pulls
+ln -sfn "$(pwd)/.grok/skills/tundra" ~/.grok/skills/tundra
+
+# or copy once (won't track updates):
+# cp -R .grok/skills/tundra ~/.grok/skills/tundra
+```
+
+Confirm the skill appears in Grok’s skill list / responds to `/tundra`.
 
 ## Prompt pack
 

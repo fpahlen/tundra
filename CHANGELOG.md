@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.4.2
+
+- Grok skill polish: frontmatter (Relationships, YAML, `models/`), tighter extract/validate/implement refs
+- README: user-wide skill install via symlink
+
 ## v1.4.1
 
 - **Usage convention:** in app projects, authoritative models live in **`models/*.tundra`** (flat)

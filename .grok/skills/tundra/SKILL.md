@@ -1,16 +1,17 @@
 ---
 name: tundra
 description: >
-  Plain-English business rules for vibe coding (Roles, Contracts, States,
-  Processes, Scenarios). Use when the user wants /tundra, domain rules,
-  who-may-do-what, extract or interview a .tundra model, validate models,
-  implement from Tundra, or keep AI from inventing business requirements.
+  Plain-English YAML business rules for vibe coding (Roles, Relationships,
+  Contracts, States, Processes, Scenarios). Use for /tundra, .tundra models,
+  models/*.tundra, who-may-do-what, extract/interview, validate, or implement
+  from Tundra without inventing business requirements.
 when-to-use: >
-  /tundra, tundra model, .tundra, extract-tundra, validate-tundra,
-  implement-tundra, business process rules, contracts and roles for a feature
+  /tundra, tundra model, .tundra, models/, YAML tundra, extract-tundra,
+  validate-tundra, implement-tundra, business process rules, contracts and
+  roles, relationships and scenarios for a feature
 argument-hint: "[extract|interview|validate|implement] [focus or path]"
 metadata:
-  short-description: "Rails under the vibes — .tundra extract / validate / implement"
+  short-description: "Rails under the vibes — YAML .tundra extract / validate / implement"
   author: tundra
 ---
 

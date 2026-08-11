@@ -36,20 +36,24 @@ Always follow `format.md` in this folder (YAML Tundra definition).
 
 8. **Decorators** only as optional fields listed in `format.md`.
 
-9. Prefer a thin model. Reuse Role/Relationship vocabulary from existing models.
+9. **Do not embed executable code** (SQL, Python, etc.) in the model — plain English only.
 
-10. **Scenarios**  
+10. Prefer a thin model. Reuse Role/Relationship vocabulary from existing models in `models/` (or house demos).
+
+11. **Scenarios**  
     At least one happy path and important error paths.  
     Steps are a YAML list of strings starting with Given/When/Then/And.  
     Scenario names use colons (`"Happy path: …"`).  
     Use `is broken` / `is applied` appropriately.
 
-11. Output a complete **YAML** `.tundra` model per `format.md`,  
+12. Output a complete **YAML** `.tundra` model per `format.md`,  
     **or** a short list of clarifying questions.
 
-12. **Default save location in app projects:** `models/<short-name>.tundra`  
+13. **Default save location in app projects:** `models/<short-name>.tundra`  
     (create `models/` if needed; flat files, kebab-case names).  
     Only use `examples/` when contributing demos to the Tundra methodology repository.
+
+When the project has `tundra.md`, treat it as authoritative over this skill’s `format.md` for any conflict.
 
 ---
 

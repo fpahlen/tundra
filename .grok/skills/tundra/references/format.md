@@ -3,7 +3,8 @@
 Plain-English models for **who may do what**, under which conditions, with living examples.
 
 **Files:** suffix `.tundra`, content is **YAML**.  
-When the full repo is available, prefer `tundra.md` and `schema/tundra.schema.json`.
+**In apps:** store under `models/*.tundra` (flat).  
+When the full Tundra repo is available, prefer `tundra.md` and `schema/tundra.schema.json` over this condensed file.
 
 ## Six concepts
 
