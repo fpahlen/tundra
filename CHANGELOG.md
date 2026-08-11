@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased (branch `feature/simple-tundra-generator`)
+
+- **Active listening** step on extract/interview (reflect → gaps → confirm before YAML)
+- Foundation for the simple Tundra file generator
+
 ## v1.4.2
 
 - Grok skill polish: frontmatter (Relationships, YAML, `models/`), tighter extract/validate/implement refs

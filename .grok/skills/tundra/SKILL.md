@@ -75,18 +75,21 @@ Never dump models in the repo root. Prefer kebab-case file names.
 
 ## Mode: extract / interview
 
+Core of the **simple Tundra file generator** interview path.
+
 1. Read `format.md` + `extract.md`.  
 2. If existing `*.tundra` files are in the project (especially `models/`), list/read them for Role/Contract consistency.  
-3. From the user’s description, either:  
-   - ask **few** clarifying questions (missing actors, vague thresholds, unclear subject), or  
-   - write a complete `.tundra` model in the exact format.  
-4. **Save path:**  
+3. **Active listening first** (see `extract.md`): short reflection of What I heard / Heard in pieces / Gaps / Check.  
+   - Do **not** jump straight to a full model on messy input.  
+   - Skip or one-sentence confirm if they paste a complete model or ask to generate immediately.  
+4. After the user confirms or corrects: write a complete `.tundra` model, or ask **few** clarifying questions for remaining gaps (one at a time when blocked).  
+5. **Save path:**  
    - App project → `models/<short-name>.tundra` (create `models/` if needed)  
    - Methodology repo demo → `examples/<short-name>/…` only when contributing a house example  
-5. Show a short summary (Roles + Contracts count + Scenario names), not a wall of theory.  
-6. Ask if they want validate next.
+6. Show a short summary (Roles + Contracts count + Scenario names), not a wall of theory.  
+7. Ask if they want validate next.
 
-**Interview style:** one clear question at a time when blocked; otherwise ship a thin model quickly so they can react.
+**Interview style:** active listen → confirm → model. Precise and brief; no filler empathy.
 
 ---
 
