@@ -79,17 +79,17 @@ Core of the **simple Tundra file generator** interview path.
 
 1. Read `format.md` + `extract.md`.  
 2. If existing `*.tundra` files are in the project (especially `models/`), list/read them for Role/Contract consistency.  
-3. **Active listening first** (see `extract.md`): short reflection of What I heard / Heard in pieces / Gaps / Check.  
-   - Do **not** jump straight to a full model on messy input.  
-   - Skip or one-sentence confirm if they paste a complete model or ask to generate immediately.  
-4. After the user confirms or corrects: write a complete `.tundra` model, or ask **few** clarifying questions for remaining gaps (one at a time when blocked).  
+3. **Active listening = draft Tundra reframe** (see `extract.md`): rewrite their intent as YAML `.tundra`, not “What I heard…” prose.  
+   - Optional short **Gaps** list if something critical is missing.  
+   - Close with an **open** question: “What other questions do you have?” / “What did I get wrong or leave out?” — not “Do you have any questions?” / “Is this right?”  
+   - If they paste a complete model or say generate now, work that model instead of a separate reframe ceremony.  
+4. After corrections: revise and save the model, or ask **few** remaining gap questions (one at a time when blocked).  
 5. **Save path:**  
    - App project → `models/<short-name>.tundra` (create `models/` if needed)  
    - Methodology repo demo → `examples/<short-name>/…` only when contributing a house example  
-6. Show a short summary (Roles + Contracts count + Scenario names), not a wall of theory.  
-7. Ask if they want validate next.
+6. Ask if they want validate next.
 
-**Interview style:** active listen → confirm → model. Precise and brief; no filler empathy.
+**Interview style:** reframe as Tundra → open invite to correct → save. Precise and brief; no filler empathy.
 
 ---
 

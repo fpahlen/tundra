@@ -15,14 +15,14 @@ When the project has `tundra.md`, treat it as authoritative over `format.md` for
 
 - The human’s description of needs, wants, or a business process (may be messy or incomplete)
 - Zero or more existing `.tundra` models (YAML) for consistency
-- Optionally: confirmation or corrections after active listening
+- Optionally: confirmation or corrections after a reframe pass
 
 ---
 
 ## Flow
 
 ```text
-messy intent → active listening → confirm/correct → extract YAML or few questions
+messy intent → draft .tundra reframe (active listening) → correct → save models/
 ```
 
 ---
@@ -31,36 +31,26 @@ messy intent → active listening → confirm/correct → extract YAML or few qu
 
 1. Read `format.md` carefully.
 
-2. **Active listening (default first response)**  
-   Confirm understanding **before** writing a full model.
+2. **Active listening = reframe as a Tundra file (default first response)**  
+   Do **not** parrot the user with “What I heard…” prose.  
+   Prove understanding by **rewriting their intent as a draft YAML `.tundra` model**.
 
-   **Skip or shrink** if the user pastes a complete model or says to generate without discussion.  
-   On skip: one-sentence restatement max, then extract (or critical gaps only).
+   **Skip ceremony** if they paste a complete model or say generate now — fix/extract that model instead.
 
-   **Otherwise output only:**
+   **Otherwise first response:**
 
-   ```text
-   ## What I heard
-   <5–8 lines plain-language summary>
+   a. **Draft model** — full YAML shape (`tundra`, `roles`, `relationships`, `contracts`, `states`, `processes`, `scenarios`)  
+      using only what they said or strongly implied. Do not invent thresholds or Roles.  
+      Unknown but necessary items: omit or mark as unspecified; never fake numbers.
 
-   ## Heard in pieces
-   - Roles: …
-   - Subjects: …
-   - Happy path: …
-   - Key rules: …
+   b. **Gaps** (short, only if needed) — concrete missing pieces.
 
-   ## Gaps
-   - …
+   c. **Open close** — prefer **“What other questions do you have?”** or **“What did I get wrong or leave out?”**  
+      Avoid “Is this right?” and “Do you have any questions?”
 
-   ## Check
-   Is this right? What did I miss?
-   ```
+   No filler empathy; no implementation talk.
 
-   - Reflect only what was said or strongly implied — **do not invent**.  
-   - No implementation details, no filler empathy.  
-   - Gaps must be concrete and answerable.
-
-3. **After confirm/correct** — extract YAML, or ask few clarifying questions for remaining gaps (one at a time when blocked).
+3. **After correct/answer** — revise the model and save, or ask few remaining critical questions (one at a time when blocked).
 
 4. Extract only what is clearly present or strongly implied.
 
@@ -84,13 +74,12 @@ messy intent → active listening → confirm/correct → extract YAML or few qu
 12. Prefer a thin model. Reuse Role/Relationship vocabulary from existing models in `models/` (or house demos).
 
 13. **Scenarios**  
-    At least one happy path and important error paths.  
+    At least one happy path and important error paths when known.  
     Steps are a YAML list of strings starting with Given/When/Then/And.  
     Scenario names use colons (`"Happy path: …"`).  
     Use `is broken` / `is applied` appropriately.
 
-14. Output a complete **YAML** `.tundra` model per `format.md`,  
-    **or** a short list of clarifying questions.
+14. Final output is a complete **YAML** `.tundra` model per `format.md`.
 
 15. **Default save location in app projects:** `models/<short-name>.tundra`  
     (create `models/` if needed; flat files, kebab-case names).  
@@ -100,4 +89,5 @@ messy intent → active listening → confirm/correct → extract YAML or few qu
 
 ## Tone
 
-Collaborative, precise, brief. Active listening is a checkpoint, not a long interview. Refuse vague Contracts.
+Collaborative, precise, brief. Active listening is a **Tundra reframe**, not a paraphrase.  
+Open questions invite correction. Refuse vague Contracts.

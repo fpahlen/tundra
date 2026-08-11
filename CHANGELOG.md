@@ -2,7 +2,8 @@
 
 ## Unreleased (branch `feature/simple-tundra-generator`)
 
-- **Active listening** step on extract/interview (reflect → gaps → confirm before YAML)
+- **Active listening** = reframe intent as a draft `.tundra` YAML (not prose paraphrase)
+- Close interview turns with open questions (“What other questions do you have?”), not closed yes/no
 - Foundation for the simple Tundra file generator
 
 ## v1.4.2
