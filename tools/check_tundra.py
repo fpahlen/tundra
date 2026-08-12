@@ -247,15 +247,80 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
             else:
                 requires_consumed.add(req)
 
-        for res in _as_list(proc.get("results")):
-            if not isinstance(res, str):
-                continue
-            if res not in state_set:
-                errors.append(
-                    f"process[{i}] ({pname!r}): results {res!r} is not a declared State"
-                )
+        has_results = proc.get("results") is not None
+        has_outcomes = proc.get("outcomes") is not None
+        if has_results and has_outcomes:
+            errors.append(
+                f"process[{i}] ({pname!r}): use either results or outcomes, not both"
+            )
+        if not has_results and not has_outcomes:
+            errors.append(
+                f"process[{i}] ({pname!r}): must declare results (AND) or outcomes (XOR branches)"
+            )
+
+        result_states: list[str] = []
+        if has_results and not has_outcomes:
+            for res in _as_list(proc.get("results")):
+                if not isinstance(res, str):
+                    continue
+                if res not in state_set:
+                    errors.append(
+                        f"process[{i}] ({pname!r}): results {res!r} is not a declared State"
+                    )
+                else:
+                    results_produced.add(res)
+                    result_states.append(res)
+            # Same-subject multi-results almost always means exclusive branches (use outcomes)
+            subjects = [state_subject(s) for s in result_states]
+            for sub in set(subjects):
+                if sub and subjects.count(sub) >= 2:
+                    errors.append(
+                        f"process[{i}] ({pname!r}): results lists multiple States of "
+                        f"subject {sub!r} — results is AND; use outcomes: for exclusive branches"
+                    )
+
+        if has_outcomes:
+            outcomes = proc.get("outcomes")
+            if not isinstance(outcomes, list) or not outcomes:
+                errors.append(f"process[{i}] ({pname!r}): outcomes must be a non-empty list")
             else:
-                results_produced.add(res)
+                otherwise_count = 0
+                for bi, branch in enumerate(outcomes):
+                    if not isinstance(branch, dict):
+                        errors.append(
+                            f"process[{i}] ({pname!r}) outcomes[{bi}]: must be a mapping"
+                        )
+                        continue
+                    when = branch.get("when")
+                    if not isinstance(when, str) or not when.strip():
+                        errors.append(
+                            f"process[{i}] ({pname!r}) outcomes[{bi}]: when is required"
+                        )
+                    elif when.strip().lower() == "otherwise":
+                        otherwise_count += 1
+                        if bi != len(outcomes) - 1:
+                            errors.append(
+                                f"process[{i}] ({pname!r}): 'otherwise' branch must be last"
+                            )
+                    bres = _as_list(branch.get("results"))
+                    if not bres:
+                        errors.append(
+                            f"process[{i}] ({pname!r}) outcomes[{bi}]: results required"
+                        )
+                    for res in bres:
+                        if not isinstance(res, str):
+                            continue
+                        if res not in state_set:
+                            errors.append(
+                                f"process[{i}] ({pname!r}) outcomes[{bi}]: "
+                                f"results {res!r} is not a declared State"
+                            )
+                        else:
+                            results_produced.add(res)
+                if otherwise_count > 1:
+                    errors.append(
+                        f"process[{i}] ({pname!r}): at most one 'otherwise' outcome branch"
+                    )
 
         for eid in _as_list(proc.get("enforced_by")):
             if not isinstance(eid, str):
@@ -341,6 +406,24 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 f"(unreachable lifecycle state)"
             )
 
+    # Produced but never required — terminal or missing follow-up
+    final_states: set[str] = set()
+    for entry in state_objects:
+        if isinstance(entry, dict) and entry.get("final") is True:
+            n = entry.get("name")
+            if isinstance(n, str):
+                final_states.add(n)
+    for name in state_names:
+        if name in results_produced and name not in requires_consumed:
+            if name in final_states:
+                continue
+            # string form states cannot mark final — warn lightly
+            warnings.append(
+                f"state {name!r}: produced by a Process but never appears in any "
+                f"requires (terminal end-state, or missing follow-up Process; "
+                f"mark final: true on the state object if intentional)"
+            )
+
     # Roles never used as actor (warn — passive Roles may be intentional)
     for r in roles:
         if r not in actors_used:
@@ -394,6 +477,30 @@ def is_genesis_requires(req: str) -> bool:
     return bool(GENESIS_REQUIRES.match(req.strip()))
 
 
+def state_subject(state_name: str) -> str:
+    """Subject phrase before is/are/has/have."""
+    m = STATE_SUBJECT.search(state_name)
+    if not m:
+        return state_name.strip()
+    return state_name[: m.start()].strip()
+
+
+def process_result_states(proc: dict) -> list[str]:
+    """All State names this Process can produce (results AND or all outcome branches)."""
+    out: list[str] = []
+    if proc.get("outcomes"):
+        for branch in proc.get("outcomes") or []:
+            if isinstance(branch, dict):
+                for res in _as_list(branch.get("results")):
+                    if isinstance(res, str):
+                        out.append(res)
+    elif proc.get("results") is not None:
+        for res in _as_list(proc.get("results")):
+            if isinstance(res, str):
+                out.append(res)
+    return out
+
+
 def is_genesis_process(proc: dict) -> bool:
     """True if every requires entry is a genesis condition (subject not yet existing)."""
     reqs = [r for r in _as_list(proc.get("requires")) if isinstance(r, str)]
@@ -421,8 +528,8 @@ def compute_reachable_states(processes: list[dict], state_set: set[str]) -> set[
         for proc in processes:
             if not process_can_fire(proc, reachable):
                 continue
-            for res in _as_list(proc.get("results")):
-                if isinstance(res, str) and res in state_set and res not in reachable:
+            for res in process_result_states(proc):
+                if res in state_set and res not in reachable:
                     reachable.add(res)
                     changed = True
     return reachable

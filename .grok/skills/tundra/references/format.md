@@ -56,7 +56,10 @@ processes:
   - name: <Process name>
     actor: <Role or System>
     requires: <State or genesis condition>
-    results: <State or short outcome>
+    results: <State or short outcome>   # AND; exclusive with outcomes
+    # outcomes:                            # XOR branches (when / otherwise)
+    #   - when: …
+    #     results: …
     enforced_by: [only-manager-creates-invoice]
 
 scenarios:

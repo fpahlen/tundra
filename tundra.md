@@ -131,11 +131,28 @@ Each Process must declare:
 | `requires` | **Any of** (OR) — Process may run if any listed State holds | Cancel when Order is Placed **or** Paid |
 | `results` | **All of** (AND) — all listed outcomes apply | Create Invoice → Invoice is Open **and** Hours are Invoiced |
 
+**Branch outcomes (XOR)** — when a Process has **mutually exclusive** endings for the same subject, do **not** list them under `results` (that would mean AND). Use `outcomes:` instead:
+
+```yaml
+- name: Make automatic credit decision
+  actor: System
+  requires: Application is Credit check completed
+  outcomes:
+    - when: debt-to-income is above 40% or the Applicant has betalningsanmärkningar
+      results: Application is Automatically declined
+    - when: debt-to-income is at or below 25% and no missed payments
+      results: Application is Automatically approved
+    - when: otherwise
+      results: Application is Pending Loan Officer review
+```
+
+Rules: a Process has **`results` or `outcomes`, never both**; each branch needs `when` + `results`; at most one `otherwise`, and it must be last; `when` text follows the same testability discipline as Contracts.
+
 **`requires` vs Contracts (`enforced_by`)**
 
 | Concern | Prefer |
 | --- | --- |
-| Lifecycle / wrong state | `requires` (and `results`) |
+| Lifecycle / wrong state | `requires` (and `results` / `outcomes`) |
 | Who may act, relationship, policy threshold | Contract text + optional `enforced_by` on the Process |
 
 Do not restate the same state guard only as a Contract without a reason — use `requires` for state, Contracts for authority and policy.
@@ -220,8 +237,14 @@ states:
 processes:
   - name: <Process name>
     actor: <Role or System>
-    requires: <State or genesis condition>   # or a list
-    results: <State or short outcome>      # or a list
+    requires: <State or genesis condition>   # or a list (OR)
+    results: <State or short outcome>      # or a list (AND) — exclusive with outcomes
+    # OR exclusive branches:
+    # outcomes:
+    #   - when: <condition>
+    #     results: <State>
+    #   - when: otherwise
+    #     results: <State>
     enforced_by:                          # optional; Contract ids that govern this Process
       - only-manager-creates-invoice
     # optional: before, after, within, quantity, …

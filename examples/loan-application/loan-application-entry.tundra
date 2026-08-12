@@ -60,10 +60,13 @@ processes:
   - name: Make automatic credit decision
     actor: System
     requires: Application is Credit check completed
-    results:
-      - Application is Automatically approved
-      - Application is Automatically declined
-      - Application is Pending Loan Officer review
+    outcomes:
+      - when: the requested loan is high relative to income or the Applicant has betalningsanmärkningar
+        results: Application is Automatically declined
+      - when: the requested loan is low relative to income and the Applicant has no missed payments
+        results: Application is Automatically approved
+      - when: otherwise
+        results: Application is Pending Loan Officer review
 
   - name: Loan Officer approves
     actor: Loan Officer

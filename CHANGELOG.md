@@ -2,13 +2,14 @@
 
 ## Unreleased
 
+- **`outcomes` / `when` / `otherwise`** for mutually exclusive Process results (XOR); error if same-subject multi-`results` (AND misuse)
+- Interview session: recovery from Structurally invalid; Contract ids + `enforced_by`; validation uses `outcomes`
+- Loan automatic decision uses `outcomes` (not AND of three states)
+- Optional `final: true` on states for intentional terminals
 - **Reachability:** error if no genesis Process; warn States not reachable from genesis
-- **Vagueness:** comparative cues warn only when **no digit** in the Contract (`above 40%` OK)
-- **List semantics:** `requires` = OR, `results` = AND (documented); `requires` vs Contracts division of labour
-- Genesis Processes added where missing (booking, ecommerce, loan, interview session)
-- consultant-hours: fix `enforced_by` (immutability on Edit, not Submit)
+- **Vagueness:** comparative cues warn only when **no digit** in the Contract
+- **List semantics:** `requires` = OR, `results` = AND; requires vs Contracts division of labour
 - Contract ids + `enforced_by` (optional; string Contracts remain valid)
-- Extract/validate prompts teach genesis + ids
 
 ## v1.5 (feature/simple-tundra-generator merged)
 
