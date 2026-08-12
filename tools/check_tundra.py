@@ -42,6 +42,10 @@ CONTRACT_QUOTE = re.compile(
     r"""contract\s+["']([^"']+)["']\s+is\s+(broken|applied)""",
     re.I,
 )
+CONTRACT_ID_REF = re.compile(
+    r"""contract\s+\[([a-z][a-z0-9_-]*)\]\s+is\s+(broken|applied)""",
+    re.I,
+)
 # Genesis / pre-subject conditions (not declared States)
 GENESIS_REQUIRES = re.compile(
     r"^(nothing|"
@@ -127,6 +131,13 @@ def _contract_text(entry) -> str | None:
     return None
 
 
+def _contract_id(entry) -> str | None:
+    if isinstance(entry, dict):
+        cid = entry.get("id")
+        return cid if isinstance(cid, str) else None
+    return None
+
+
 def _collect_states(data: dict) -> tuple[list[str], list[dict]]:
     names: list[str] = []
     objects: list[dict] = []
@@ -177,14 +188,22 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
     state_names, state_objects = _collect_states(data)
     state_set = set(state_names)
 
-    contracts = []
+    contracts_text: list[str] = []
+    contract_ids: dict[str, str] = {}  # id -> text
+    id_set: set[str] = set()
     for i, c in enumerate(data.get("contracts") or []):
         ct = _contract_text(c)
-        if ct:
-            contracts.append(ct)
-        else:
-            errors.append(f"contract[{i}]: must be a string (or object with text)")
-    contract_set = set(contracts)
+        cid = _contract_id(c)
+        if not ct:
+            errors.append(f"contract[{i}]: must be a string (or object with id + text)")
+            continue
+        contracts_text.append(ct)
+        if cid:
+            if cid in id_set:
+                errors.append(f"contract[{i}]: duplicate id {cid!r}")
+            id_set.add(cid)
+            contract_ids[cid] = ct
+    contract_text_set = set(contracts_text)
 
     # State names subject
     for i, name in enumerate(state_names):
@@ -199,6 +218,7 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
     results_produced: set[str] = set()
     requires_consumed: set[str] = set()
     expires_states: list[str] = []
+    enforced_refs: set[str] = set()  # contract ids referenced by processes
 
     for entry in state_objects:
         name = entry.get("name")
@@ -242,8 +262,20 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
             else:
                 results_produced.add(res)
 
-    # Scenario steps + contract quotes
-    quoted_contracts: set[str] = set()
+        for eid in _as_list(proc.get("enforced_by")):
+            if not isinstance(eid, str):
+                continue
+            if eid not in id_set:
+                errors.append(
+                    f"process[{i}] ({pname!r}): enforced_by id {eid!r} is not a "
+                    f"declared Contract id"
+                )
+            else:
+                enforced_refs.add(eid)
+
+    # Scenario steps + contract quotes / ids
+    quoted_texts: set[str] = set()
+    quoted_ids: set[str] = set()
     for i, scen in enumerate(data.get("scenarios") or []):
         if not isinstance(scen, dict):
             continue
@@ -257,20 +289,45 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 )
             for m in CONTRACT_QUOTE.finditer(step):
                 q = m.group(1)
-                quoted_contracts.add(q)
-                if q not in contract_set:
+                quoted_texts.add(q)
+                if q not in contract_text_set:
                     errors.append(
                         f"scenario[{i}] step[{j}]: contract quote does not match "
-                        f"any declared Contract: {q!r}"
+                        f"any declared Contract text: {q!r}"
+                    )
+            for m in CONTRACT_ID_REF.finditer(step):
+                qid = m.group(1)
+                quoted_ids.add(qid)
+                if qid not in id_set:
+                    errors.append(
+                        f"scenario[{i}] step[{j}]: contract id [{qid}] is not a "
+                        f"declared Contract id"
                     )
 
-    # Contract coverage (warn)
-    for i, c in enumerate(contracts):
-        if c not in quoted_contracts:
+    # Contract coverage (warn): demonstrated via quote, id, or enforced_by
+    for i, c in enumerate(data.get("contracts") or []):
+        ct = _contract_text(c)
+        cid = _contract_id(c)
+        if not ct:
+            continue
+        demonstrated = ct in quoted_texts
+        if cid and (cid in quoted_ids or cid in enforced_refs):
+            demonstrated = True
+        if not demonstrated:
             warnings.append(
-                f"contract[{i}]: never quoted in any Scenario "
-                f'("… is broken" / "… is applied"): {c!r}'
+                f"contract[{i}]: never demonstrated in a Scenario "
+                f'(quote text, or "[id] is broken/applied") and not listed in '
+                f"any process enforced_by: {ct!r}"
             )
+
+    # If any contract has an id, warn ids never enforced_by any process
+    if id_set:
+        for cid, ct in contract_ids.items():
+            if cid not in enforced_refs:
+                warnings.append(
+                    f"contract id {cid!r}: never listed in any Process enforced_by "
+                    f"({ct!r})"
+                )
 
     # Unproduced states (warn — may be intentional initial states)
     for name in state_names:
@@ -307,7 +364,7 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
             )
 
     # Vague contracts (warn)
-    for i, contract in enumerate(contracts):
+    for i, contract in enumerate(contracts_text):
         for pat in VAGUE_PATTERNS:
             if pat.search(contract):
                 warnings.append(

@@ -137,10 +137,11 @@ You can add many Scenarios without changing the underlying rules.
 
 | Situation | Phrase |
 | --- | --- |
-| An actor tries something forbidden | `And the contract "…" is broken` |
-| An automatic rule fires as designed | `And the contract "…" is applied` |
+| An actor tries something forbidden | `And the contract "…" is broken` or `And the contract [id] is broken` |
+| An automatic rule fires as designed | `And the contract "…" is applied` or `And the contract [id] is applied` |
 
-Prefer colons in scenario names: `"Happy path: …"`, `"Error: …"`.
+Prefer colons in scenario names: `"Happy path: …"`, `"Error: …"`.  
+Quoted text must match a declared Contract **exactly** (or use a stable `[id]`).
 
 ---
 
@@ -187,7 +188,11 @@ relationships:
   - <Role> is <Relationship> of <subject>
 
 contracts:
+  # thin form (still valid):
   - <testable plain-English rule>
+  # or with stable id (preferred for implement / enforce links):
+  - id: only-manager-creates-invoice
+    text: Only the Manager may create an invoice
 
 states:
   - <Subject is Some state>
@@ -198,8 +203,10 @@ states:
 processes:
   - name: <Process name>
     actor: <Role or System>
-    requires: <State or short condition>   # or a list
+    requires: <State or genesis condition>   # or a list
     results: <State or short outcome>      # or a list
+    enforced_by:                          # optional; Contract ids that govern this Process
+      - only-manager-creates-invoice
     # optional: before, after, within, quantity, …
 
 scenarios:
@@ -369,11 +376,12 @@ contracts:
 4. **Roles are first-class.**  
 5. **Relationships are first-class.**  
 6. **Every State names its subject.**  
-7. **Processes declare actor, requires, and results.** Actor is a Role or `System`.  
-8. **Consistency across models.** No silent near-synonyms.  
-9. **Scenarios demonstrate Contracts.** Use `is broken` / `is applied` appropriately.  
-10. **Decorators are optional and minimal** — only the fields listed above.  
-11. **Models are valid YAML** and should pass `tools/check_tundra.py`.
+7. **Processes declare actor, requires, and results.** Actor is a Role or `System` (not listed under `roles:`).  
+8. **Prefer Contract ids + `enforced_by`** on Processes so implementers do not re-infer which rule guards which step. Bare string Contracts remain valid for thin models.  
+9. **Consistency across models.** No silent near-synonyms.  
+10. **Scenarios demonstrate Contracts.** Use `is broken` / `is applied` with exact quotes or `[id]`.  
+11. **Decorators are optional and minimal** — only the fields listed above.  
+12. **Models are valid YAML** and should pass `tools/check_tundra.py`.
 
 ---
 

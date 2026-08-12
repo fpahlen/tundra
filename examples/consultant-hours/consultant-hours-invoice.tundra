@@ -1,4 +1,5 @@
 # Canonical Tundra model (YAML). See tundra.md for the language definition.
+# Demonstrates optional Contract ids + process enforced_by for implement fidelity.
 
 tundra: Consultant hours to client invoice
 
@@ -13,11 +14,16 @@ relationships:
   - Client is Recipient of Invoice
 
 contracts:
-  - Hours may be edited by the Consultant only while they are in Draft
-  - Once hours are Submitted they become immutable for the Consultant
-  - An invoice may be created only from Submitted hours that have not already been invoiced
-  - Only the Client may Approve or Dispute an open invoice
-  - Only the Manager may create an invoice
+  - id: hours-editable-in-draft
+    text: Hours may be edited by the Consultant only while they are in Draft
+  - id: hours-immutable-after-submit
+    text: Once hours are Submitted they become immutable for the Consultant
+  - id: invoice-from-submitted-unbilled
+    text: An invoice may be created only from Submitted hours that have not already been invoiced
+  - id: client-approve-or-dispute
+    text: Only the Client may Approve or Dispute an open invoice
+  - id: only-manager-creates-invoice
+    text: Only the Manager may create an invoice
 
 states:
   - Hours are in Draft
@@ -37,11 +43,15 @@ processes:
     actor: Consultant
     requires: Hours are in Draft
     results: Hours are in Draft
+    enforced_by:
+      - hours-editable-in-draft
 
   - name: Submit Hours
     actor: Consultant
     requires: Hours are in Draft
     results: Hours are Submitted
+    enforced_by:
+      - hours-immutable-after-submit
 
   - name: Create Invoice
     actor: Manager
@@ -49,16 +59,23 @@ processes:
     results:
       - Invoice is Open
       - Hours are Invoiced
+    enforced_by:
+      - only-manager-creates-invoice
+      - invoice-from-submitted-unbilled
 
   - name: Approve Invoice
     actor: Client
     requires: Invoice is Open
     results: Invoice is Approved
+    enforced_by:
+      - client-approve-or-dispute
 
   - name: Dispute Invoice
     actor: Client
     requires: Invoice is Open
     results: Invoice is Disputed
+    enforced_by:
+      - client-approve-or-dispute
 
 scenarios:
   - name: "Happy path: hours submitted and invoice approved"
@@ -81,7 +98,7 @@ scenarios:
       - When the Consultant tries to edit the hours
       - Then the edit is rejected
       - And the Hours remain Submitted
-      - And the contract "Hours may be edited by the Consultant only while they are in Draft" is broken
+      - And the contract [hours-editable-in-draft] is broken
 
   - name: "Error: Consultant tries to create an invoice"
     steps:
@@ -89,4 +106,4 @@ scenarios:
       - When the Consultant tries to create an invoice
       - Then invoice creation is rejected
       - And the Hours remain Submitted
-      - And the contract "Only the Manager may create an invoice" is broken
+      - And the contract [only-manager-creates-invoice] is broken

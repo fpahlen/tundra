@@ -33,6 +33,8 @@ Always follow `tundra.md`. Stay faithful to the model.
    - Relationships as association checks where needed  
    - State **per subject**  
    - One function per Process; map `actor` / `requires` / `results`  
+   - **`enforced_by`:** check those Contract ids only; fail-fast message = Contract `text`  
+   - If `enforced_by` is absent, do not invent a mapping silently — prefer models that declare ids  
    - Decorators as time/capacity/quantity fields  
    - Contracts fail fast with Contract text  
    - No extra libraries unless requested  

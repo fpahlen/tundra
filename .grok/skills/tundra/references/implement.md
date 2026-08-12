@@ -22,8 +22,10 @@ Always follow `format.md` in this folder. Prefer project `tundra.md` when presen
    - Relationships as ownership/association checks where needed
    - One state representation **per subject** (do not merge unrelated subjects into one enum)
    - One function per Process; map `actor` / `requires` / `results`
+   - **`enforced_by`:** for each Process, check exactly the Contracts listed (by id → use that Contract’s `text` as the fail-fast message). Do not re-infer guards from unrelated Contracts.
+   - If a Process has no `enforced_by`, only then infer carefully from Contract English — prefer asking for ids.
    - Decorators (`before`, `after`, `expires_in`, `within`, `capacity`, `quantity`, `contains`) as time/capacity/quantity fields
-   - Contracts fail fast; messages quote Contract text
+   - Contracts fail fast; messages quote Contract **text**
    - No extra libraries unless requested
 
 2. **Tests / scenarios**

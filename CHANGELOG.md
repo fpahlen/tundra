@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased (branch `feature/simple-tundra-generator`)
+## Unreleased
+
+- **Contract ids + `enforced_by`** on Processes (optional; string Contracts remain valid)
+- Scenarios may cite `contract [id] is broken|applied` as well as quoted text
+- Checker validates ids / enforced_by; consultant-hours is the golden path with ids
+- Implement prompts: map guards from `enforced_by`, do not re-infer freely
+
+## v1.5 (feature/simple-tundra-generator merged)
 
 - **Active listening** = reframe intent as a draft `.tundra` YAML (not prose paraphrase)
 - Close interview turns with open questions (“What other questions do you have?”), not closed yes/no
@@ -8,7 +15,6 @@
 - **Checker hardening** (Lovable review): contract-quote match, requires/results vs states + genesis, subject-named states, no `System` under roles, coverage/timer/role warnings
 - Spec: positioning vs Gherkin/BPMN/DbC; vocabulary collisions; `before` dual meaning; genesis requires
 - `examples/bad-structure/` negative fixture; CI workflow; README MIT + venv
-- Foundation for the simple Tundra file generator
 
 ## v1.4.2
 

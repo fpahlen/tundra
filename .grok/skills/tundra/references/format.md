@@ -44,6 +44,8 @@ relationships:
 
 contracts:
   - <testable rule>
+  - id: only-manager-creates-invoice
+    text: Only the Manager may create an invoice
 
 states:
   - <Subject is Some state>
@@ -53,8 +55,9 @@ states:
 processes:
   - name: <Process name>
     actor: <Role or System>
-    requires: <State or short condition>
+    requires: <State or genesis condition>
     results: <State or short outcome>
+    enforced_by: [only-manager-creates-invoice]
 
 scenarios:
   - name: "Happy path: …"
@@ -67,7 +70,7 @@ scenarios:
       - Given ...
       - When the <Role> tries to ...
       - Then ...
-      - And the contract "..." is broken
+      - And the contract [only-manager-creates-invoice] is broken
 
 ```
 
@@ -75,7 +78,7 @@ scenarios:
 
 | Situation | Phrase |
 | --- | --- |
-| Forbidden action | `is broken` |
+| Forbidden action | `is broken` (quote text or `[id]`) |
 | Automatic rule fires correctly | `is applied` |
 
 ## Key rules
@@ -88,7 +91,8 @@ scenarios:
 6. Processes declare name, actor, requires, results.  
    - `actor: System` is allowed; do **not** list `System` under `roles:`.  
    - `requires` must be a declared State or a genesis condition (`nothing` / `no X exists`).  
-7. Scenarios demonstrate Contracts; quoted contract text must match `contracts:` exactly.  
+   - Prefer `enforced_by: [contract-id, …]` linking to Contract ids.  
+7. Scenarios demonstrate Contracts; quotes must match text, or use `[id]`.  
 8. Output valid YAML only (shape in this file / `tundra.md`).
 
 ## Map to code
@@ -98,6 +102,7 @@ scenarios:
 | Role | Actor param / enum |
 | Relationship | Ownership / association checks |
 | Contract | Fail-fast; message quotes Contract text |
+| `enforced_by` | Which Contracts to check in that Process function |
 | State | Enum **per subject** |
-| Process | One function; guard actor + requires |
+| Process | One function; guard actor + requires + enforced_by |
 | Scenario | Executable test |
