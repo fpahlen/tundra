@@ -118,6 +118,19 @@ Human intent  →  extract-tundra  →  .tundra model (YAML)
 
 Always treat [`tundra.md`](tundra.md) as the definition of Tundra.
 
+## Interview website (Stage 1)
+
+Local web UI for the interview → validate → export loop:
+
+See [`web/README.md`](web/README.md).
+
+```bash
+cd web && python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --app-dir .
+# open http://127.0.0.1:8000
+```
+
 ## House examples
 
 | Example | Purpose |
@@ -126,6 +139,7 @@ Always treat [`tundra.md`](tundra.md) as the definition of Tundra.
 | [`examples/bad-contracts/`](examples/bad-contracts/) | **Intentional bad Contracts** fixture (vagueness) |
 | [`examples/booking-reservation/`](examples/booking-reservation/) | Temporal/capacity decorators + Elixir |
 | Other folders under `examples/` | Common web-site patterns (model only) |
+| [`models/tundra-interview-session.tundra`](models/tundra-interview-session.tundra) | Product domain model for the interview site |
 
 ## License
 

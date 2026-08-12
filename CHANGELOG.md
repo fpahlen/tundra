@@ -2,14 +2,10 @@
 
 ## Unreleased
 
-- **Interview extract (Package 2):** draft diffs after turn 1; pre-export checklist; `source: inferred`; split heuristic; prefer ids/`enforced_by`/`outcomes`/genesis
-- Optional Contract **`source`** / **`rationale`** in schema
-- **ecommerce-order** golden path with Contract ids + `enforced_by`
-- Loan vague specimen moved to **`examples/bad-contracts/`** (excluded from `--all`; CI asserts vagueness warnings)
-- CI: skill example body matches consultant-hours
-- **`outcomes` / `when` / `otherwise`** for exclusive branches; same-subject multi-`results` is an error
-- Interview session: recovery, ids, `enforced_by`, validation `outcomes`
-- Reachability + smarter vagueness (comparative without digit)
+- **Interview web app (`web/`)** — Stage 1 UI: chat, draft, auto-validate, checklist, export (demo or live LLM)
+- **Interview extract (Package 2):** diffs, checklist, `source: inferred`, split heuristic
+- Optional Contract **`source`** / **`rationale`**; ecommerce ids; **`examples/bad-contracts/`**
+- **`outcomes`**, genesis reachability, Contract ids + `enforced_by`
 
 ## v1.5 (feature/simple-tundra-generator merged)
 

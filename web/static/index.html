@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tundra Interview</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Tundra Interview</h1>
+      <div class="meta">
+        <span id="llm-mode" class="badge">…</span>
+        <span id="session-badge" class="badge">no session</span>
+        <span id="draft-badge" class="badge">draft: —</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Conversation</h2>
+        <div id="messages"></div>
+        <form class="composer" id="chat-form">
+          <textarea
+            id="input"
+            rows="2"
+            placeholder="Describe a business process…"
+            required
+          ></textarea>
+          <button type="submit" class="primary" id="send-btn">Send</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Model draft</h2>
+        <div class="toolbar">
+          <button type="button" id="new-btn">New session</button>
+          <button type="button" id="validate-btn" disabled>Validate</button>
+          <button type="button" id="export-btn" class="primary" disabled>
+            Export .tundra
+          </button>
+          <button type="button" id="abandon-btn" disabled>Abandon</button>
+        </div>
+        <pre id="draft">// No draft yet — describe a process in the chat.</pre>
+        <div class="side">
+          <h3>Pre-export checklist</h3>
+          <ul class="checklist" id="checklist"></ul>
+          <h3 style="margin-top: 1rem">Validation</h3>
+          <div class="report" id="report">No report yet.</div>
+        </div>
+      </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
