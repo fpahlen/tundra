@@ -10,13 +10,13 @@ Checker: `python3 tools/check_tundra.py --all` (from repo root; see [`../require
 | Folder | Domain | Illustrates | Code |
 | --- | --- | --- | --- |
 | [consultant-hours](consultant-hours/) | Hours → client invoice | Core six concepts + Relationships | Python, C |
-| [loan-application](loan-application/) | Credit decision (BankID, UC) | **Intentional bad model** — untestable Contracts; counter-example / prompt testing | Model only |
 | [booking-reservation](booking-reservation/) | Guest / host booking | Temporal + capacity decorators | Elixir |
 | [ecommerce-order](ecommerce-order/) | Cart and order lifecycle | Aggregational decorators, cancel windows | Model only |
 | [marketplace-listing](marketplace-listing/) | Listing, offer, sale | Multi-party Relationships, expiry | Model only |
 | [content-publish](content-publish/) | Editorial workflow | Writer / Editor / Reader, review expiry | Model only |
 | [social-post](social-post/) | Posts and moderation | Short-form Relationships, privacy | Model only |
 | [bad-structure](bad-structure/) | Checker regression | **Intentional FAIL** for `check_tundra.py` (not a style reference) | Fixture only |
+| [bad-contracts](bad-contracts/) | Vague Contracts specimen | **Structurally OK**, deliberately untestable Contracts (excluded from `--all`) | Fixture only |
 
 ## How to use with prompts
 

@@ -83,8 +83,8 @@ def find_models() -> list[Path]:
         if not d.is_dir():
             continue
         for p in sorted(d.rglob("*.tundra")):
-            # Negative fixtures for the checker itself (must FAIL when run alone)
-            if "bad-structure" in p.parts:
+            # Negative fixtures (run explicitly in CI, not in --all product corpus)
+            if "bad-structure" in p.parts or "bad-contracts" in p.parts:
                 continue
             paths.append(p)
     skill_ex = ROOT / ".grok" / "skills" / "tundra" / "references" / "example.tundra"

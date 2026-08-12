@@ -2,14 +2,14 @@
 
 ## Unreleased
 
-- **`outcomes` / `when` / `otherwise`** for mutually exclusive Process results (XOR); error if same-subject multi-`results` (AND misuse)
-- Interview session: recovery from Structurally invalid; Contract ids + `enforced_by`; validation uses `outcomes`
-- Loan automatic decision uses `outcomes` (not AND of three states)
-- Optional `final: true` on states for intentional terminals
-- **Reachability:** error if no genesis Process; warn States not reachable from genesis
-- **Vagueness:** comparative cues warn only when **no digit** in the Contract
-- **List semantics:** `requires` = OR, `results` = AND; requires vs Contracts division of labour
-- Contract ids + `enforced_by` (optional; string Contracts remain valid)
+- **Interview extract (Package 2):** draft diffs after turn 1; pre-export checklist; `source: inferred`; split heuristic; prefer ids/`enforced_by`/`outcomes`/genesis
+- Optional Contract **`source`** / **`rationale`** in schema
+- **ecommerce-order** golden path with Contract ids + `enforced_by`
+- Loan vague specimen moved to **`examples/bad-contracts/`** (excluded from `--all`; CI asserts vagueness warnings)
+- CI: skill example body matches consultant-hours
+- **`outcomes` / `when` / `otherwise`** for exclusive branches; same-subject multi-`results` is an error
+- Interview session: recovery, ids, `enforced_by`, validation `outcomes`
+- Reachability + smarter vagueness (comparative without digit)
 
 ## v1.5 (feature/simple-tundra-generator merged)
 

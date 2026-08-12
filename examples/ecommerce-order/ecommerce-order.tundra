@@ -1,4 +1,4 @@
-# Canonical Tundra model (YAML). See tundra.md for the language definition.
+# Canonical Tundra model (YAML). Second golden path for Contract ids + enforced_by.
 
 tundra: E-commerce order lifecycle
 
@@ -13,12 +13,18 @@ relationships:
   - Merchant is Handler of Order
 
 contracts:
-  - Only a Customer may add items to a Cart or place an Order
-  - An Order may be placed only from a Cart that contains at least one item
-  - Payment must succeed before an Order can move to Paid
-  - Only the Merchant may mark an Order as Shipped or Delivered
-  - A Customer may cancel an Order only while it is in Placed or Paid state
-  - Once an Order is Shipped it can no longer be cancelled by the Customer
+  - id: only-customer-cart-or-order
+    text: Only a Customer may add items to a Cart or place an Order
+  - id: order-needs-items
+    text: An Order may be placed only from a Cart that contains at least one item
+  - id: payment-before-paid
+    text: Payment must succeed before an Order can move to Paid
+  - id: only-merchant-ships
+    text: Only the Merchant may mark an Order as Shipped or Delivered
+  - id: cancel-while-placed-or-paid
+    text: A Customer may cancel an Order only while it is in Placed or Paid state
+  - id: no-cancel-after-shipped
+    text: Once an Order is Shipped it can no longer be cancelled by the Customer
 
 states:
   - Cart is Empty
@@ -28,36 +34,50 @@ states:
   - Order is Placed
   - Order is Paid
   - Order is Shipped
-  - Order is Delivered
-  - Order is Cancelled
-  - Order is Payment Failed
+  - name: Order is Delivered
+    final: true
+  - name: Order is Cancelled
+    final: true
+  - name: Order is Payment Failed
+    final: true
 
 processes:
   - name: Open Cart
     actor: Customer
     requires: no Cart exists
     results: Cart is Empty
+    enforced_by:
+      - only-customer-cart-or-order
 
   - name: Add item to Cart
     actor: Customer
     requires: Cart is Empty
     results: Cart has Items
+    enforced_by:
+      - only-customer-cart-or-order
 
   - name: Remove item from Cart
     actor: Customer
     requires: Cart has Items
     results: Cart is Empty
+    enforced_by:
+      - only-customer-cart-or-order
 
   - name: Place Order
     actor: Customer
     requires: Cart has Items
     results: Order is Placed
     quantity: at least 1
+    enforced_by:
+      - only-customer-cart-or-order
+      - order-needs-items
 
   - name: Capture Payment
     actor: Payment Provider
     requires: Order is Placed
     results: Order is Paid
+    enforced_by:
+      - payment-before-paid
 
   - name: Fail Payment
     actor: Payment Provider
@@ -68,11 +88,15 @@ processes:
     actor: Merchant
     requires: Order is Paid
     results: Order is Shipped
+    enforced_by:
+      - only-merchant-ships
 
   - name: Mark as Delivered
     actor: Merchant
     requires: Order is Shipped
     results: Order is Delivered
+    enforced_by:
+      - only-merchant-ships
 
   - name: Cancel Order
     actor: Customer
@@ -81,11 +105,16 @@ processes:
       - Order is Paid
     results: Order is Cancelled
     before: Shipped
+    enforced_by:
+      - cancel-while-placed-or-paid
+      - no-cancel-after-shipped
 
 scenarios:
   - name: "Happy path: customer buys and receives goods"
     steps:
-      - Given the Cart is Empty
+      - Given no Cart exists
+      - When the Customer opens a Cart
+      - Then the Cart is Empty
       - When the Customer adds an item to the Cart
       - Then the Cart has Items
       - When the Customer places the Order
@@ -109,11 +138,11 @@ scenarios:
       - When the Customer tries to cancel the Order
       - Then the cancellation is rejected
       - And the Order remains Shipped
-      - And the contract "Once an Order is Shipped it can no longer be cancelled by the Customer" is broken
+      - And the contract [no-cancel-after-shipped] is broken
 
   - name: "Error: place order from empty cart"
     steps:
       - Given the Cart is Empty
       - When the Customer tries to place an Order
       - Then the order is rejected
-      - And the contract "An Order may be placed only from a Cart that contains at least one item" is broken
+      - And the contract [order-needs-items] is broken

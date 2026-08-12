@@ -227,6 +227,8 @@ contracts:
   # or with stable id (preferred for implement / enforce links):
   - id: only-manager-creates-invoice
     text: Only the Manager may create an invoice
+    source: stated          # or inferred (must confirm before export)
+    rationale: optional why  # human context; not codegen
 
 states:
   - <Subject is Some state>

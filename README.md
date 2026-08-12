@@ -123,7 +123,7 @@ Always treat [`tundra.md`](tundra.md) as the definition of Tundra.
 | Example | Purpose |
 | --- | --- |
 | [`examples/consultant-hours/`](examples/consultant-hours/) | Clean reference + Python/C demos |
-| [`examples/loan-application/`](examples/loan-application/) | **Intentional bad model** — vague Contracts for validator testing |
+| [`examples/bad-contracts/`](examples/bad-contracts/) | **Intentional bad Contracts** fixture (vagueness) |
 | [`examples/booking-reservation/`](examples/booking-reservation/) | Temporal/capacity decorators + Elixir |
 | Other folders under `examples/` | Common web-site patterns (model only) |
 

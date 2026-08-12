@@ -42,6 +42,15 @@
                 "type": "string",
                 "minLength": 1,
                 "description": "Plain-English Contract text"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["stated", "inferred"],
+                "description": "stated = human said it; inferred = AI inferred — must be confirmed before export"
+              },
+              "rationale": {
+                "type": "string",
+                "description": "Why this rule exists (human context; not machine-checked or codegen)"
               }
             }
           }

@@ -22,5 +22,30 @@ jobs:
             echo "expected structural fixture to FAIL"
             exit 1
           fi
+      - name: Bad-contracts fixture must warn on vagueness
+        run: |
+          out=$(python tools/check_tundra.py examples/bad-contracts/ 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -q 'comparative or vague' || {
+            echo "expected vagueness warning from bad-contracts fixture"
+            exit 1
+          }
+      - name: Skill example matches consultant-hours (body)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          def body(p):
+              lines = Path(p).read_text().splitlines()
+              while lines and lines[0].startswith("#"):
+                  lines.pop(0)
+              while lines and not lines[0].strip():
+                  lines.pop(0)
+              return "\n".join(lines).strip() + "\n"
+          a = body("examples/consultant-hours/consultant-hours-invoice.tundra")
+          b = body(".grok/skills/tundra/references/example.tundra")
+          if a != b:
+              raise SystemExit("skill example.tundra body != consultant-hours canonical")
+          print("skill example body OK")
+          PY
       - name: Consultant demo
         run: python examples/consultant-hours/demo.py

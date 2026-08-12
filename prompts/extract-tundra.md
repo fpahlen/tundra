@@ -15,7 +15,8 @@ Treat the repository as the full context, not only this prompt file.
 1. **`tundra.md`** — language definition (YAML format, six concepts, decorators, rules). Single source of truth.
 2. **`schema/tundra.schema.json`** — structural schema for `.tundra` files.
 3. **`examples/README.md`** and **`examples/*/`** — methodology demos (YAML).  
-   Note: `examples/loan-application/` is an **intentional bad model** (vague Contracts) — do not copy its Contract style.
+   Note: `examples/bad-contracts/` is an **intentional bad model** (vague Contracts) — do not copy its Contract style.  
+   Note: `examples/bad-structure/` must **FAIL** the checker — not a style reference.
 4. In **app projects**, product models live under **`models/*.tundra`** (flat). That is the default write/read location.
 5. Sibling prompts: `prompts/validate-tundra.md`, `prompts/implement-tundra.md`
 6. Optional: `.grok/skills/tundra/references/`
@@ -30,6 +31,7 @@ Always follow `tundra.md`. Models are **YAML**.
 - Zero or more existing `.tundra` models (in apps: prefer `models/`)
 - Optionally pointers into `examples/` (demos) or `models/` (product rules)
 - Optionally: user confirmation or corrections after a reframe pass
+- Optionally: “amend” mode against an existing model (interview only the delta)
 
 ---
 
@@ -37,9 +39,10 @@ Always follow `tundra.md`. Models are **YAML**.
 
 ```text
 messy intent
-  → active listening as Tundra reframe (draft .tundra YAML)
-  → user corrects / answers open questions
-  → revise and save under models/ (apps)
+  → turn 1: full draft .tundra reframe
+  → later turns: DIFF of changes + updated gaps + open question
+  → pre-export checklist clear
+  → save under models/ (apps)
 ```
 
 ---
@@ -50,67 +53,94 @@ messy intent
 
 2. **Active listening = reframe as a Tundra file (default first response)**  
    Do **not** parrot the user in “What I heard…” prose.  
-   Prove understanding by **rewriting their intent as a draft `.tundra` model** (full YAML shape from `tundra.md`).
-
-   That reframe *is* the listening: structure, names, and obligations made explicit so the human can correct the model, not a summary.
+   Prove understanding by **rewriting their intent as a draft `.tundra` model**.
 
    **Skip reframe ceremony** when:
    - the user pastes a complete or near-complete `.tundra` / YAML model (validate/fix that instead), or
    - they explicitly say to write the file without discussion (“just generate”, “skip interview”).
 
-   **Otherwise, first response:**
+   **Turn 1 — full draft:**
 
-   a. **Draft model** — complete YAML `.tundra` document that reframes only what they said or strongly implied.  
-      - Use proper sections: `tundra`, `roles`, `relationships`, `contracts`, `states`, `processes`, `scenarios`.  
-      - Prefer thin structure; omit inventing thresholds, Roles, or States they never mentioned.  
-      - If something must appear for shape but is unknown, use a clearly marked placeholder in plain English (e.g. a Contract that says the rule is still unspecified) **or** leave it out and list it under Gaps — do not invent measurable rules.
+   a. **Draft model** — complete YAML per `tundra.md`.  
+      - Sections: `tundra`, `roles`, `relationships`, `contracts`, `states`, `processes`, `scenarios`.  
+      - Prefer **Contract `id` + `text`** and Process **`enforced_by: [ids]`**.  
+      - At least one **genesis** Process (`no <Subject> exists` / …).  
+      - Exclusive decisions use **`outcomes`** (`when` / `otherwise`), not multi-`results` on the same subject.  
+      - Prefer thin structure; do not invent thresholds, Roles, or States they never mentioned.
 
-   b. **Gaps** (only if needed, short bullets) — missing actors, unclear subjects, untestable or missing thresholds. Concrete and answerable.
+   b. **Inferred items** — anything “strongly implied” but not stated must be marked, e.g. on a Contract object:
 
-   c. **Close with an open question** — invite more, don’t close the door:  
-      Prefer: **“What other questions do you have?”** or **“What did I get wrong or leave out?”**  
-      Avoid yes/no dead-ends: not “Is this right?”, not “Do you have any questions?”
+      ```yaml
+      - id: some-rule
+        text: …
+        source: inferred   # or stated (default)
+      ```
 
-   Do not add filler empathy or implementation talk (no enums, APIs, databases).
+      List every `source: inferred` item under **Gaps / confirm** until the human accepts or rejects it.  
+      **Do not export** while any inferred item remains unconfirmed.
 
-3. **After the user corrects or answers**  
-   Update the draft model, then either:
-   - save the complete YAML (default path `models/<short-name>.tundra`), or
-   - ask **few** further clarifying questions only for remaining critical gaps (one at a time when blocked).
+   c. **Gaps** — concrete missing actors, subjects, thresholds, cancellation paths, etc.
 
-4. Extract only what is clearly present or strongly implied. Never invent important Roles, Relationships, Contracts, States, Processes, or Scenarios.
+   d. **Open question** — e.g. **“What other questions do you have?”** or **“What did I get wrong or leave out?”**  
+      Never close with yes/no only (“Is this right?”, “Do you have any questions?”).
 
-5. **Contracts must be testable.** Reject vagueness (“too high”, “reasonable”, “high relative to”, “falls between”, …). Ask for measurable criteria — or keep the gap open rather than faking a number.
+3. **Later turns — show a diff, not only a full rewrite**  
+   After turn 1, lead with what changed from the human’s last correction:
 
-6. **Every State must name its subject.**
+   ```text
+   ## Changes
+   + contract … 
+   ~ process … requires: …
+   - state …
+   ```
 
-7. **Declare Relationships** when connections matter (`A is X of B` or short form).
+   Then either the full updated YAML (or “full model on request”) plus remaining Gaps and an open question.  
+   Humans must not re-read a 60-line document every turn.
 
-8. **Every Process** is a YAML map with `name`, `actor`, `requires`, and **`results` or `outcomes`** (not both). Actor is a Role or `System` (not under `roles:`).  
-   Include at least one **genesis** Process (`requires: no <Subject> exists` or equivalent) so subjects can exist.  
-   Prefer Contract **ids** + `enforced_by` on Processes for implement fidelity.  
-   `requires` lists are **OR**; `results` lists are **AND**; exclusive decisions use **`outcomes`** with `when` / `otherwise`.
+4. **Thin-model / split heuristic**  
+   If the draft exceeds roughly **8 Contracts**, or introduces a **second subject with its own independent lifecycle**, propose splitting into another thin model and name the seam. Do not silently grow a fat model.
 
-9. **Decorators** only as fields listed in `tundra.md` (`expires_in`, `capacity`, `quantity`, `contains`, `before`, `after`, `within`).
+5. **Pre-export checklist (must be clear before offering to save/export)**  
+   Show a short checklist; block export while any item fails:
 
-10. **Do not embed executable code** (SQL, Python, etc.) in the model.
+   ```text
+   Before export:
+     ✓/✗ genesis Process present; States reachable
+     ✓/✗ every Contract has an id (preferred) and is bound via enforced_by or a Scenario
+     ✓/✗ every Contract is testable (no comparative wording without a number)
+     ✓/✗ no source: inferred left unconfirmed
+     ✓/✗ open gaps list is empty
+   ```
 
-11. Prefer thin models; reuse vocabulary from existing models / good examples.
+   The human approves a **model with no open gaps**, not a vague “that’s right.”
 
-12. **Scenarios**  
-    Happy path + important errors when known.  
-    `name` uses colons (`"Happy path: …"`).  
-    `steps` is a list of strings starting with Given/When/Then/And.  
-    Use `is broken` / `is applied` appropriately.
+6. Extract only what is clearly present. **Inferred** items allowed only with `source: inferred` and explicit confirmation (step 2b). Never invent important knowledge without marking it.
 
-13. Final output is a complete **YAML** `.tundra` model per `tundra.md`.  
-    Default path in app projects: `models/<short-name>.tundra` (create `models/` if needed).
+7. **Contracts must be testable.** Reject vagueness without numbers (“high relative to income”). Prefer “above 40%” style when thresholds exist. Optional `rationale:` free text on Contract objects for *why* (never machine-checked, not generated into code).
+
+8. **Every State must name its subject.**
+
+9. **Declare Relationships** when connections matter.
+
+10. **Processes:** `name`, `actor`, `requires`, and **`results` or `outcomes`**.  
+    Genesis required. Prefer **ids + `enforced_by`**.  
+    `requires` = OR; `results` = AND; exclusive paths = `outcomes`.
+
+11. **Decorators** only as in `tundra.md`.
+
+12. **Do not embed executable code** in the model.
+
+13. Prefer thin models; reuse vocabulary from existing `models/` / good examples.
+
+14. **Scenarios** — happy path + important errors; prefer `contract [id] is broken|applied`.
+
+15. Final save: `models/<short-name>.tundra` (create `models/` if needed).
 
 ---
 
 ## Tone
 
 Collaborative, precise, helpful, brief.  
-Active listening is a **Tundra reframe**, not a paraphrase.  
-Open questions invite correction; closed questions stall.  
+Active listening is a **Tundra reframe** (+ later **diffs**).  
+Open questions invite correction.  
 Refuse vague Contracts.

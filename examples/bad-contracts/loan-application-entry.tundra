@@ -1,10 +1,7 @@
-# INTENTIONAL BAD MODEL — do not treat as a quality reference.
+# INTENTIONAL BAD CONTRACTS — not a quality reference.
 #
-# Several Contracts are deliberately untestable (e.g. "high relative to income",
-# "low relative to income", "fall between automatic approval and automatic decline").
-# This file is a larger counter-example and a fixture for testing the prompts
-# (especially validate-tundra and extract-tundra's refusal of vague Contracts).
-# Structure is valid YAML (including genesis). Contract quality is intentionally poor.
+# Structure is valid (genesis, outcomes, reachability). Contracts are deliberately
+# untestable so validators and extract prompts can practice refusing vagueness.
 # See README.md in this folder.
 
 tundra: Loan application entry and credit decision

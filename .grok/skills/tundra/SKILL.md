@@ -79,17 +79,18 @@ Core of the **simple Tundra file generator** interview path.
 
 1. Read `format.md` + `extract.md`.  
 2. If existing `*.tundra` files are in the project (especially `models/`), list/read them for Role/Contract consistency.  
-3. **Active listening = draft Tundra reframe** (see `extract.md`): rewrite their intent as YAML `.tundra`, not “What I heard…” prose.  
-   - Optional short **Gaps** list if something critical is missing.  
-   - Close with an **open** question: “What other questions do you have?” / “What did I get wrong or leave out?” — not “Do you have any questions?” / “Is this right?”  
-   - If they paste a complete model or say generate now, work that model instead of a separate reframe ceremony.  
-4. After corrections: revise and save the model, or ask **few** remaining gap questions (one at a time when blocked).  
-5. **Save path:**  
-   - App project → `models/<short-name>.tundra` (create `models/` if needed)  
-   - Methodology repo demo → `examples/<short-name>/…` only when contributing a house example  
-6. Ask if they want validate next.
+3. **Active listening = draft Tundra reframe** (see `extract.md`): rewrite intent as YAML `.tundra`, not prose paraphrase.  
+   - Prefer Contract **ids** + **`enforced_by`**, genesis, and **`outcomes`** for exclusive branches.  
+   - Mark inferred rules with **`source: inferred`**; must be confirmed before export.  
+   - After turn 1, show a **diff** of changes, not only a full re-dump.  
+   - Close with an **open** question — not yes/no.  
+   - Pre-export **checklist** must be clear (no open gaps) before offering to save.  
+   - If ~8+ Contracts or a second independent lifecycle, propose a **split**.  
+4. After corrections: revise (with diff), or ask **few** remaining gaps.  
+5. **Save path:** app → `models/<short-name>.tundra`; methodology demos → `examples/` only when contributing demos.  
+6. Offer validate next.
 
-**Interview style:** reframe as Tundra → open invite to correct → save. Precise and brief; no filler empathy.
+**Interview style:** reframe → diff turns → checklist → save.
 
 ---
 
