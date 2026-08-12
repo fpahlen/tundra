@@ -12,7 +12,6 @@ tundra: Loan application entry and credit decision
 roles:
   - Applicant
   - Loan Officer
-  - System
 
 relationships:
   - Applicant is Applicant of Application

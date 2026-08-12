@@ -6,8 +6,11 @@ A plain-English language for specifying business processes with explicit roles, 
 
 As AI writes more of the code, durable knowledge must live *above* the code. Tundra is that layer: thin models, explicit obligations, and living examples that become tests.
 
+Unlike Gherkin alone, Tundra is not “examples with no model”: **Roles, Relationships, Contracts, States, and Processes** sit beside Scenarios in one file a non-programmer can challenge — then AI prompts turn that file into code and tests. See [positioning in `tundra.md`](tundra.md#not-gherkin-bpmn-or-classical-design-by-contract).
+
 **Language definition:** [`tundra.md`](tundra.md)  
-**Model format:** YAML in `.tundra` files · [`schema/tundra.schema.json`](schema/tundra.schema.json)
+**Model format:** YAML in `.tundra` files · [`schema/tundra.schema.json`](schema/tundra.schema.json)  
+**License:** [MIT](LICENSE)
 
 ## Repository layout
 
@@ -29,10 +32,13 @@ As AI writes more of the code, durable knowledge must live *above* the code. Tun
 3. Check models:
 
    ```bash
-   python3 -m pip install -r requirements-dev.txt
-   python3 tools/check_tundra.py --all
-
+   python3 -m venv .venv
+   source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   python -m pip install -r requirements-dev.txt
+   python tools/check_tundra.py --all
+   python examples/consultant-hours/demo.py
    ```
+
 4. In Grok Build: `/tundra interview` (or use `prompts/`).
 
 ## Where to put models in *your* project

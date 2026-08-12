@@ -4,6 +4,10 @@
 
 - **Active listening** = reframe intent as a draft `.tundra` YAML (not prose paraphrase)
 - Close interview turns with open questions (“What other questions do you have?”), not closed yes/no
+- Dogfood product model: `models/tundra-interview-session.tundra`
+- **Checker hardening** (Lovable review): contract-quote match, requires/results vs states + genesis, subject-named states, no `System` under roles, coverage/timer/role warnings
+- Spec: positioning vs Gherkin/BPMN/DbC; vocabulary collisions; `before` dual meaning; genesis requires
+- `examples/bad-structure/` negative fixture; CI workflow; README MIT + venv
 - Foundation for the simple Tundra file generator
 
 ## v1.4.2

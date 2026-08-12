@@ -1,0 +1,136 @@
+# Product domain model for the simple Tundra interview website.
+# Dogfood: session lifecycle, not UI/LLM vendor details.
+
+tundra: Tundra interview session
+
+roles:
+  - Author
+  - Facilitator
+
+relationships:
+  - Author is Owner of Session
+  - Author is Owner of Model draft
+  - Facilitator is Interviewer of Session
+
+contracts:
+  - Only the Author may start a Session and provide domain descriptions
+  - The Facilitator must reframe the Author’s intent as a draft Tundra model and must not invent Roles, Contracts, States, Processes, or thresholds the Author did not state or strongly imply
+  - A Model draft may be marked Structurally valid only after it passes the Tundra structural schema check
+  - A Model draft may be marked Domain ready only when it is Structurally valid and has no unresolved testability gaps the Author still needs to answer
+  - Only the Author may request Export of a Model draft
+  - A Model draft may be Exported only when it is Domain ready
+  - The Author may Abandon a Session at any time before Export
+  - The Facilitator must close interview turns with an open question that invites correction or more detail, not a yes or no dead end
+
+states:
+  - Session is Not started
+  - Session is Open
+  - Session is Awaiting Author input
+  - Session is Abandoned
+  - Model draft is Empty
+  - Model draft is Proposed
+  - Model draft is Structurally invalid
+  - Model draft is Structurally valid
+  - Model draft is Domain ready
+  - Model draft is Exported
+
+processes:
+  - name: Start Session
+    actor: Author
+    requires: Session is Not started
+    results:
+      - Session is Open
+      - Model draft is Empty
+
+  - name: Reframe as draft model
+    actor: Facilitator
+    requires: Session is Open
+    results:
+      - Model draft is Proposed
+      - Session is Awaiting Author input
+
+  - name: Author corrects or elaborates
+    actor: Author
+    requires: Session is Awaiting Author input
+    results: Session is Open
+
+  - name: Revise draft model
+    actor: Facilitator
+    requires: Session is Open
+    results:
+      - Model draft is Proposed
+      - Session is Awaiting Author input
+
+  - name: Run structural validation
+    actor: System
+    requires: Model draft is Proposed
+    results:
+      - Model draft is Structurally valid
+      - Model draft is Structurally invalid
+
+  - name: Resolve domain gaps
+    actor: Author
+    requires: Model draft is Structurally valid
+    results: Model draft is Domain ready
+
+  - name: Export model
+    actor: Author
+    requires: Model draft is Domain ready
+    results: Model draft is Exported
+
+  - name: Abandon Session
+    actor: Author
+    requires:
+      - Session is Open
+      - Session is Awaiting Author input
+    results: Session is Abandoned
+
+scenarios:
+  - name: "Happy path: interview, validate, export"
+    steps:
+      - Given the Session is Not started
+      - When the Author starts a Session
+      - Then the Session is Open
+      - And the Model draft is Empty
+      - When the Author describes a business process
+      - And the Facilitator reframes it as a draft model
+      - Then the Model draft is Proposed
+      - And the Session is Awaiting Author input
+      - When the Author corrects or elaborates
+      - And the Facilitator revises the draft model
+      - Then the Model draft is Proposed
+      - When the System runs structural validation successfully
+      - Then the Model draft is Structurally valid
+      - When the Author resolves remaining domain gaps
+      - Then the Model draft is Domain ready
+      - When the Author exports the model
+      - Then the Model draft is Exported
+
+  - name: "Error: Facilitator invents a threshold"
+    steps:
+      - Given the Session is Open
+      - And the Author has not stated a measurable threshold
+      - When the Facilitator tries to reframe with an invented numeric Contract
+      - Then the reframe is rejected
+      - And the contract "The Facilitator must reframe the Author’s intent as a draft Tundra model and must not invent Roles, Contracts, States, Processes, or thresholds the Author did not state or strongly imply" is broken
+
+  - name: "Error: export before domain ready"
+    steps:
+      - Given the Model draft is Structurally valid
+      - And domain gaps remain unresolved
+      - When the Author tries to export the model
+      - Then the export is rejected
+      - And the contract "A Model draft may be Exported only when it is Domain ready" is broken
+
+  - name: "Error: structural validation fails"
+    steps:
+      - Given the Model draft is Proposed
+      - When the System runs structural validation and the schema check fails
+      - Then the Model draft is Structurally invalid
+      - And the contract "A Model draft may be marked Structurally valid only after it passes the Tundra structural schema check" is applied
+
+  - name: "Author abandons before export"
+    steps:
+      - Given the Session is Open
+      - When the Author abandons the Session
+      - Then the Session is Abandoned

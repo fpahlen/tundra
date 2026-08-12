@@ -86,7 +86,9 @@ scenarios:
 4. Roles and Relationships are first-class.  
 5. Every State names its subject.  
 6. Processes declare name, actor, requires, results.  
-7. Scenarios demonstrate Contracts.  
+   - `actor: System` is allowed; do **not** list `System` under `roles:`.  
+   - `requires` must be a declared State or a genesis condition (`nothing` / `no X exists`).  
+7. Scenarios demonstrate Contracts; quoted contract text must match `contracts:` exactly.  
 8. Output valid YAML only (shape in this file / `tundra.md`).
 
 ## Map to code

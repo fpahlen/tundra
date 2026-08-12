@@ -16,6 +16,7 @@ Checker: `python3 tools/check_tundra.py --all` (from repo root; see [`../require
 | [marketplace-listing](marketplace-listing/) | Listing, offer, sale | Multi-party Relationships, expiry | Model only |
 | [content-publish](content-publish/) | Editorial workflow | Writer / Editor / Reader, review expiry | Model only |
 | [social-post](social-post/) | Posts and moderation | Short-form Relationships, privacy | Model only |
+| [bad-structure](bad-structure/) | Checker regression | **Intentional FAIL** for `check_tundra.py` (not a style reference) | Fixture only |
 
 ## How to use with prompts
 

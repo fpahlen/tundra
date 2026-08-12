@@ -1,0 +1,28 @@
+# INTENTIONAL STRUCTURAL BAD MODEL — must FAIL tools/check_tundra.py
+# Defects: undeclared actor, state without subject, bad requires, bogus contract quote
+
+tundra: Structurally broken specimen
+
+roles:
+  - Clerk
+
+contracts:
+  - Only a Clerk may file a Form
+
+states:
+  - Draft
+  - Form is Filed
+
+processes:
+  - name: File Form
+    actor: Manager
+    requires: nonsense precondition
+    results: Form is Filed
+
+scenarios:
+  - name: "Error: wrong quote"
+    steps:
+      - Given Form is Filed
+      - When the Clerk tries to file
+      - Then the action is rejected
+      - And the contract "This contract does not exist in the model" is broken

@@ -49,6 +49,21 @@ Most teams either bury rules in code (invisible to non-programmers) or scatter t
 | AIs | Structure disciplined enough to extract, validate, and implement without inventing rules |
 | Both | A common language for *good* software: explicit knowledge, single source of truth, design by contract |
 
+### Not Gherkin, BPMN, or classical Design by Contract
+
+| Neighbour | Overlap | What Tundra adds |
+| --- | --- | --- |
+| Gherkin / Cucumber | Scenario steps look like Given/When/Then | A **model** behind the examples: Roles, Relationships, Contracts, States, Processes — scenarios are evidence, not the whole spec |
+| BPMN / workflow tools | States + Processes | Diffable text, plain-language obligations (Contracts), no proprietary diagram lock-in |
+| Design by Contract in code | `requires` / `results` | Obligations lifted **above** code, editable by non-programmers |
+| Statecharts alone | Lifecycle | First-class **who may act** (Roles) and **why** (Contracts) |
+
+Tundra is for durable **domain obligations** living next to (not inside) implementation.
+
+### Vocabulary collisions
+
+In UML, BPMN, classical DbC, and the actor model, the words **Actor**, **Process**, **Contract**, and **Scenario** mean other things. In Tundra they are defined only as in this document (Role-or-System actor on a Process; business Contract text; end-to-end Scenario examples).
+
 ---
 
 ## The Six Core Concepts
@@ -102,9 +117,11 @@ The named transformations that move a subject from one State to another.
 
 Each Process must declare:
 
-- **actor** — which Role (or `System` for automatic steps) performs it  
-- **requires** — precondition State(s) or a short condition tied to a Contract  
-- **results** — resulting State(s) (string or list)
+- **actor** — which Role performs it, or `System` for automatic steps  
+  Do **not** list `System` under `roles:` — it is a reserved actor name, not a domain Role.  
+- **requires** — one or more **declared States**, or a **genesis** condition before the subject exists:  
+  `nothing`, `no <Subject> exists`, or `<Subject> does not exist`  
+- **results** — resulting **declared State(s)** (string or list)
 
 ### Scenarios
 
@@ -131,14 +148,17 @@ Prefer colons in scenario names: `"Happy path: …"`, `"Error: …"`.
 
 Optional fields on States or Processes when core concepts are not enough.
 
-### Temporal
+### Temporal and ordering
 
 | Field | Where | Meaning | Example |
 | --- | --- | --- | --- |
-| `before` | process | Allowed only before a point | `before: start time` |
-| `after` | process | Allowed only after a point | `after: end time` |
-| `expires_in` | state | State ends after a duration | `expires_in: 15 minutes` |
-| `within` | process | Relative window | `within: 24 hours before start` |
+| `before` | process | Allowed only before a **time point** *or* before reaching a **named state fragment** (ordering gate) | `before: start time` · `before: Shipped` |
+| `after` | process | Allowed only after a time point or named state fragment | `after: end time` |
+| `expires_in` | state | State ends after a duration — pair with a **System** Process that requires this State | `expires_in: 15 minutes` |
+| `within` | process | Relative time window | `within: 24 hours before start` |
+
+Prefer clear time phrases (`start time`, `15 minutes`) for pure temporal rules.  
+State-gate uses of `before` / `after` (e.g. `before: Shipped`) mean “while still before that lifecycle point.”
 
 ### Aggregational
 

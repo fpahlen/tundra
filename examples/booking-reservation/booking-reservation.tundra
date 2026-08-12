@@ -5,7 +5,6 @@ tundra: Booking and reservation
 roles:
   - Guest
   - Host
-  - System
 
 relationships:
   - Guest is Booker of Reservation

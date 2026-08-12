@@ -6,7 +6,6 @@ roles:
   - Seller
   - Buyer
   - Platform
-  - System
 
 relationships:
   - Seller is Owner of Listing

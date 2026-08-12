@@ -1,4 +1,4 @@
-# Skill few-shot example (YAML). Full rules: format.md / tundra.md
+# Skill few-shot example (YAML). Canonical: examples/consultant-hours/consultant-hours-invoice.tundra
 
 tundra: Consultant hours to client invoice
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Structural checker for Tundra models (YAML in .tundra files)."""
+"""Checker for Tundra models (YAML in .tundra files).
+
+Enforces schema plus semantic links the format depends on:
+contract quotes, requires/results vs states, subject-named states, etc.
+"""
 
 from __future__ import annotations
 
@@ -28,10 +32,26 @@ VAGUE_PATTERNS = [
         r"\blow relative to\b",
         r"\bfalls? between\b",
         r"\bfall between\b",
+        r"\bcorrectly\b",
+        r"\bpromptly\b",
     ]
 ]
 
 STEP_PREFIX = re.compile(r"^(Given|When|Then|And)\b")
+CONTRACT_QUOTE = re.compile(
+    r"""contract\s+["']([^"']+)["']\s+is\s+(broken|applied)""",
+    re.I,
+)
+# Genesis / pre-subject conditions (not declared States)
+GENESIS_REQUIRES = re.compile(
+    r"^(nothing|"
+    r"no .+\s+exists?|"
+    r".+\s+does not exist|"
+    r".+\s+do not exist)$",
+    re.I,
+)
+# "Subject is/are/has …" (subject-named States)
+STATE_SUBJECT = re.compile(r"\b(is|are|has|have)\b", re.I)
 
 
 def load_deps():
@@ -57,23 +77,20 @@ def load_deps():
 
 
 def find_models() -> list[Path]:
-    """Discover models for --all.
-
-    - models/ when present (consumer apps; flat *.tundra by convention)
-    - examples/ when present (methodology demos)
-    - skill example.tundra when present
-    """
+    """Discover models for --all."""
     paths: list[Path] = []
-    models_dir = ROOT / "models"
-    if models_dir.is_dir():
-        paths.extend(sorted(models_dir.rglob("*.tundra")))
-    examples_dir = ROOT / "examples"
-    if examples_dir.is_dir():
-        paths.extend(sorted(examples_dir.rglob("*.tundra")))
+    for sub in ("models", "examples"):
+        d = ROOT / sub
+        if not d.is_dir():
+            continue
+        for p in sorted(d.rglob("*.tundra")):
+            # Negative fixtures for the checker itself (must FAIL when run alone)
+            if "bad-structure" in p.parts:
+                continue
+            paths.append(p)
     skill_ex = ROOT / ".grok" / "skills" / "tundra" / "references" / "example.tundra"
     if skill_ex.is_file():
         paths.append(skill_ex)
-    # de-dupe while preserving order
     seen: set[Path] = set()
     unique: list[Path] = []
     for p in paths:
@@ -82,6 +99,46 @@ def find_models() -> list[Path]:
             seen.add(rp)
             unique.append(p)
     return unique
+
+
+def _as_list(value) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _state_name(entry) -> str | None:
+    if isinstance(entry, str):
+        return entry
+    if isinstance(entry, dict):
+        name = entry.get("name")
+        return name if isinstance(name, str) else None
+    return None
+
+
+def _contract_text(entry) -> str | None:
+    if isinstance(entry, str):
+        return entry
+    if isinstance(entry, dict):
+        text = entry.get("text")
+        return text if isinstance(text, str) else None
+    return None
+
+
+def _collect_states(data: dict) -> tuple[list[str], list[dict]]:
+    names: list[str] = []
+    objects: list[dict] = []
+    for entry in data.get("states") or []:
+        if isinstance(entry, dict):
+            objects.append(entry)
+            n = entry.get("name")
+            if isinstance(n, str):
+                names.append(n)
+        elif isinstance(entry, str):
+            names.append(entry)
+    return names, objects
 
 
 def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], list[str]]:
@@ -106,24 +163,151 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
     if errors:
         return errors, warnings
 
-    roles = set(data.get("roles") or [])
-    for i, proc in enumerate(data.get("processes") or []):
-        actor = proc.get("actor")
-        if actor and actor != "System" and actor not in roles:
+    # --- Semantic checks (only after schema OK) ---
+
+    roles = [r for r in (data.get("roles") or []) if isinstance(r, str)]
+    role_set = set(roles)
+
+    if "System" in role_set:
+        errors.append(
+            "roles: do not declare 'System' as a Role — use actor: System on Processes "
+            "without listing System under roles (see tundra.md)"
+        )
+
+    state_names, state_objects = _collect_states(data)
+    state_set = set(state_names)
+
+    contracts = []
+    for i, c in enumerate(data.get("contracts") or []):
+        ct = _contract_text(c)
+        if ct:
+            contracts.append(ct)
+        else:
+            errors.append(f"contract[{i}]: must be a string (or object with text)")
+    contract_set = set(contracts)
+
+    # State names subject
+    for i, name in enumerate(state_names):
+        if not STATE_SUBJECT.search(name):
             errors.append(
-                f"process[{i}] ({proc.get('name')!r}): actor {actor!r} "
-                f"is not in roles and is not 'System'"
+                f"state[{i}] {name!r}: every State must name its subject "
+                f'(e.g. "Hours are in Draft", not "Draft")'
             )
 
+    # Roles used as actors
+    actors_used: set[str] = set()
+    results_produced: set[str] = set()
+    requires_consumed: set[str] = set()
+    expires_states: list[str] = []
+
+    for entry in state_objects:
+        name = entry.get("name")
+        if isinstance(name, str) and "expires_in" in entry:
+            expires_states.append(name)
+
+    for i, proc in enumerate(data.get("processes") or []):
+        if not isinstance(proc, dict):
+            continue
+        pname = proc.get("name", f"process[{i}]")
+        actor = proc.get("actor")
+        if actor and actor != "System" and actor not in role_set:
+            errors.append(
+                f"process[{i}] ({pname!r}): actor {actor!r} is not in roles "
+                f"and is not 'System'"
+            )
+        if isinstance(actor, str):
+            actors_used.add(actor)
+
+        for req in _as_list(proc.get("requires")):
+            if not isinstance(req, str):
+                continue
+            if is_genesis_requires(req):
+                continue
+            if req not in state_set:
+                errors.append(
+                    f"process[{i}] ({pname!r}): requires {req!r} is not a declared "
+                    f"State and not a genesis condition "
+                    f'(use a State name, or "nothing" / "no <Subject> exists")'
+                )
+            else:
+                requires_consumed.add(req)
+
+        for res in _as_list(proc.get("results")):
+            if not isinstance(res, str):
+                continue
+            if res not in state_set:
+                errors.append(
+                    f"process[{i}] ({pname!r}): results {res!r} is not a declared State"
+                )
+            else:
+                results_produced.add(res)
+
+    # Scenario steps + contract quotes
+    quoted_contracts: set[str] = set()
     for i, scen in enumerate(data.get("scenarios") or []):
+        if not isinstance(scen, dict):
+            continue
         for j, step in enumerate(scen.get("steps") or []):
+            if not isinstance(step, str):
+                continue
             if not STEP_PREFIX.match(step.strip()):
                 warnings.append(
                     f"scenario[{i}] step[{j}]: does not start with "
                     f"Given/When/Then/And: {step!r}"
                 )
+            for m in CONTRACT_QUOTE.finditer(step):
+                q = m.group(1)
+                quoted_contracts.add(q)
+                if q not in contract_set:
+                    errors.append(
+                        f"scenario[{i}] step[{j}]: contract quote does not match "
+                        f"any declared Contract: {q!r}"
+                    )
 
-    for i, contract in enumerate(data.get("contracts") or []):
+    # Contract coverage (warn)
+    for i, c in enumerate(contracts):
+        if c not in quoted_contracts:
+            warnings.append(
+                f"contract[{i}]: never quoted in any Scenario "
+                f'("… is broken" / "… is applied"): {c!r}'
+            )
+
+    # Unproduced states (warn — may be intentional initial states)
+    for name in state_names:
+        if name not in results_produced:
+            warnings.append(
+                f"state {name!r}: never appears in any Process results "
+                f"(dead state, or intentional initial-only state)"
+            )
+
+    # Roles never used as actor (warn — passive Roles may be intentional)
+    for r in roles:
+        if r not in actors_used:
+            warnings.append(
+                f"role {r!r}: never used as a Process actor "
+                f"(passive Role, or unused declaration)"
+            )
+
+    # expires_in without System process that requires that state
+    for name in expires_states:
+        has_handler = False
+        for proc in data.get("processes") or []:
+            if not isinstance(proc, dict):
+                continue
+            if proc.get("actor") != "System":
+                continue
+            reqs = _as_list(proc.get("requires"))
+            if name in reqs:
+                has_handler = True
+                break
+        if not has_handler:
+            warnings.append(
+                f"state {name!r}: has expires_in but no System Process lists it "
+                f"in requires (timer with no handler)"
+            )
+
+    # Vague contracts (warn)
+    for i, contract in enumerate(contracts):
         for pat in VAGUE_PATTERNS:
             if pat.search(contract):
                 warnings.append(
@@ -132,6 +316,10 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 break
 
     return errors, warnings
+
+
+def is_genesis_requires(req: str) -> bool:
+    return bool(GENESIS_REQUIRES.match(req.strip()))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -146,12 +334,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Check all models under examples/ and skill example",
+        help="Check models/, examples/, and skill example",
     )
     parser.add_argument(
         "--strict-warnings",
         action="store_true",
-        help="Exit non-zero if any warnings (e.g. vague contracts)",
+        help="Exit non-zero if any warnings",
     )
     args = parser.parse_args(argv)
 
@@ -178,7 +366,6 @@ def main(argv: list[str] | None = None) -> int:
     any_error = False
     any_warning = False
     for path in paths:
-        rel = path if path.is_absolute() else path
         try:
             display = path.resolve().relative_to(ROOT)
         except ValueError:
