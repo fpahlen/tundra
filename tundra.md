@@ -121,7 +121,24 @@ Each Process must declare:
   Do **not** list `System` under `roles:` — it is a reserved actor name, not a domain Role.  
 - **requires** — one or more **declared States**, or a **genesis** condition before the subject exists:  
   `nothing`, `no <Subject> exists`, or `<Subject> does not exist`  
+  **Every model needs at least one genesis Process** so a subject can come into existence.  
 - **results** — resulting **declared State(s)** (string or list)
+
+**List semantics**
+
+| Field | List means | Example |
+| --- | --- | --- |
+| `requires` | **Any of** (OR) — Process may run if any listed State holds | Cancel when Order is Placed **or** Paid |
+| `results` | **All of** (AND) — all listed outcomes apply | Create Invoice → Invoice is Open **and** Hours are Invoiced |
+
+**`requires` vs Contracts (`enforced_by`)**
+
+| Concern | Prefer |
+| --- | --- |
+| Lifecycle / wrong state | `requires` (and `results`) |
+| Who may act, relationship, policy threshold | Contract text + optional `enforced_by` on the Process |
+
+Do not restate the same state guard only as a Contract without a reason — use `requires` for state, Contracts for authority and policy.
 
 ### Scenarios
 

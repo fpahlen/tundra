@@ -23,7 +23,6 @@ contracts:
   - The Facilitator must close interview turns with an open question that invites correction or more detail, not a yes or no dead end
 
 states:
-  - Session is Not started
   - Session is Open
   - Session is Awaiting Author input
   - Session is Abandoned
@@ -37,7 +36,7 @@ states:
 processes:
   - name: Start Session
     actor: Author
-    requires: Session is Not started
+    requires: no Session exists
     results:
       - Session is Open
       - Model draft is Empty
@@ -88,7 +87,7 @@ processes:
 scenarios:
   - name: "Happy path: interview, validate, export"
     steps:
-      - Given the Session is Not started
+      - Given no Session exists
       - When the Author starts a Session
       - Then the Session is Open
       - And the Model draft is Empty

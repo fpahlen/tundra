@@ -4,7 +4,7 @@
 # "low relative to income", "fall between automatic approval and automatic decline").
 # This file is a larger counter-example and a fixture for testing the prompts
 # (especially validate-tundra and extract-tundra's refusal of vague Contracts).
-# Structure is valid YAML; semantic Contract quality is intentionally poor.
+# Structure is valid YAML (including genesis). Contract quality is intentionally poor.
 # See README.md in this folder.
 
 tundra: Loan application entry and credit decision
@@ -27,9 +27,7 @@ contracts:
   - Applications that fall between automatic approval and automatic decline must be reviewed and decided by a Loan Officer
 
 states:
-  - Application is Not started
   - Application is BankID in progress
-  - Application is BankID failed
   - Application is Credit check required
   - Application is Credit check completed
   - Application is Automatically approved
@@ -41,7 +39,7 @@ states:
 processes:
   - name: Start application with BankID
     actor: Applicant
-    requires: Application is Not started
+    requires: no Application exists
     results: Application is BankID in progress
 
   - name: Complete BankID identification
@@ -80,7 +78,7 @@ processes:
 scenarios:
   - name: "Happy path: low risk applicant is automatically approved"
     steps:
-      - Given the Application is Not started
+      - Given no Application exists
       - When the Applicant starts the application with BankID
       - Then the Application is BankID in progress
       - When the Applicant successfully completes BankID identification

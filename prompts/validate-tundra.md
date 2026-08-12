@@ -35,6 +35,10 @@ Always follow `tundra.md`.
 
 ### 5. Process actors in `roles` or `System`
 
+### 5b. Genesis and reachability
+- Is there at least one genesis Process (`no X exists` / `nothing` / `X does not exist`)?
+- Can every State be reached from genesis results via Processes? Flag cycles that never start.
+
 ### 6. Decorators only known fields
 
 ### 7. No embedded code

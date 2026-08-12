@@ -44,14 +44,15 @@ processes:
     requires: Hours are in Draft
     results: Hours are in Draft
     enforced_by:
+      # Authority/policy: who may edit and under which draft rule (not a second requires)
       - hours-editable-in-draft
+      - hours-immutable-after-submit
 
   - name: Submit Hours
     actor: Consultant
     requires: Hours are in Draft
     results: Hours are Submitted
-    enforced_by:
-      - hours-immutable-after-submit
+    # No enforced_by: Submit creates the immutable boundary; Edit enforces it later
 
   - name: Create Invoice
     actor: Manager

@@ -33,6 +33,11 @@ states:
   - Order is Payment Failed
 
 processes:
+  - name: Open Cart
+    actor: Customer
+    requires: no Cart exists
+    results: Cart is Empty
+
   - name: Add item to Cart
     actor: Customer
     requires: Cart is Empty

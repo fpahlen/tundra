@@ -86,7 +86,10 @@ messy intent
 
 7. **Declare Relationships** when connections matter (`A is X of B` or short form).
 
-8. **Every Process** is a YAML map with `name`, `actor`, `requires`, `results`. Actor is a Role or `System`.
+8. **Every Process** is a YAML map with `name`, `actor`, `requires`, `results`. Actor is a Role or `System` (not under `roles:`).  
+   Include at least one **genesis** Process (`requires: no <Subject> exists` or equivalent) so subjects can exist.  
+   Prefer Contract **ids** + `enforced_by` on Processes for implement fidelity.  
+   `requires` lists are **OR**; `results` lists are **AND**.
 
 9. **Decorators** only as fields listed in `tundra.md` (`expires_in`, `capacity`, `quantity`, `contains`, `before`, `after`, `within`).
 

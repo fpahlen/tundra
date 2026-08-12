@@ -2,10 +2,13 @@
 
 ## Unreleased
 
-- **Contract ids + `enforced_by`** on Processes (optional; string Contracts remain valid)
-- Scenarios may cite `contract [id] is broken|applied` as well as quoted text
-- Checker validates ids / enforced_by; consultant-hours is the golden path with ids
-- Implement prompts: map guards from `enforced_by`, do not re-infer freely
+- **Reachability:** error if no genesis Process; warn States not reachable from genesis
+- **Vagueness:** comparative cues warn only when **no digit** in the Contract (`above 40%` OK)
+- **List semantics:** `requires` = OR, `results` = AND (documented); `requires` vs Contracts division of labour
+- Genesis Processes added where missing (booking, ecommerce, loan, interview session)
+- consultant-hours: fix `enforced_by` (immutability on Edit, not Submit)
+- Contract ids + `enforced_by` (optional; string Contracts remain valid)
+- Extract/validate prompts teach genesis + ids
 
 ## v1.5 (feature/simple-tundra-generator merged)
 

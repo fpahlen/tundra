@@ -32,9 +32,9 @@ states:
   - Reservation is No-show
 
 processes:
-  - name: Check availability
-    actor: Guest
-    requires: Time slot is Available
+  - name: Open Time slot
+    actor: Host
+    requires: no Time slot exists
     results: Time slot is Available
 
   - name: Create Reservation

@@ -16,26 +16,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "schema" / "tundra.schema.json"
 
-VAGUE_PATTERNS = [
-    re.compile(p, re.I)
-    for p in [
-        r"\btoo high\b",
-        r"\btoo low\b",
-        r"\breasonable\b",
-        r"\bsufficient\b",
-        r"\bsuitable\b",
-        r"\bappropriate\b",
-        r"\bsoon\b",
-        r"\blow risk\b",
-        r"\bhigh risk\b",
-        r"\bhigh relative to\b",
-        r"\blow relative to\b",
-        r"\bfalls? between\b",
-        r"\bfall between\b",
-        r"\bcorrectly\b",
-        r"\bpromptly\b",
-    ]
-]
+# Comparative / scalar language — OK if a digit appears in the same Contract
+# Prefer multi-word cues so "more detail" is not flagged; "more than 24" is OK via digit.
+COMPARATIVE_CUES = re.compile(
+    r"("
+    r"\btoo high\b|\btoo low\b|"
+    r"\bhigh relative to\b|\blow relative to\b|\brelative to\b|"
+    r"\bmore than\b|\bless than\b|\bgreater than\b|\bfewer than\b|"
+    r"\bhigher than\b|\blower than\b|"
+    r"\babove\b|\bbelow\b|"
+    r"\breasonable\b|\bsufficient\b|\bappropriate\b|\bsoon\b|\bpromptly\b|"
+    r"\bfalls? between\b|\bfall between\b"
+    r")",
+    re.I,
+)
+HAS_DIGIT = re.compile(r"\d")
 
 STEP_PREFIX = re.compile(r"^(Given|When|Then|And)\b")
 CONTRACT_QUOTE = re.compile(
@@ -329,12 +324,21 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                     f"({ct!r})"
                 )
 
-    # Unproduced states (warn — may be intentional initial states)
+    # Reachability from genesis (requires list = OR of preconditions)
+    processes = [p for p in (data.get("processes") or []) if isinstance(p, dict)]
+    genesis_procs = [p for p in processes if is_genesis_process(p)]
+    if not genesis_procs:
+        errors.append(
+            "model has no genesis Process (no Process with requires like "
+            '"nothing" / "no <Subject> exists" / "<Subject> does not exist"). '
+            "Without one, no subject can come into existence."
+        )
+    reachable = compute_reachable_states(processes, state_set)
     for name in state_names:
-        if name not in results_produced:
+        if name not in reachable:
             warnings.append(
-                f"state {name!r}: never appears in any Process results "
-                f"(dead state, or intentional initial-only state)"
+                f"state {name!r}: not reachable from any genesis Process "
+                f"(unreachable lifecycle state)"
             )
 
     # Roles never used as actor (warn — passive Roles may be intentional)
@@ -348,9 +352,7 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
     # expires_in without System process that requires that state
     for name in expires_states:
         has_handler = False
-        for proc in data.get("processes") or []:
-            if not isinstance(proc, dict):
-                continue
+        for proc in processes:
             if proc.get("actor") != "System":
                 continue
             reqs = _as_list(proc.get("requires"))
@@ -363,20 +365,67 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 f"in requires (timer with no handler)"
             )
 
-    # Vague contracts (warn)
+    # Vagueness: comparative cue without a digit; Contract with no Role/State token
     for i, contract in enumerate(contracts_text):
-        for pat in VAGUE_PATTERNS:
-            if pat.search(contract):
-                warnings.append(
-                    f"contract[{i}]: possibly vague phrasing ({pat.pattern}): {contract!r}"
-                )
-                break
+        if COMPARATIVE_CUES.search(contract) and not HAS_DIGIT.search(contract):
+            warnings.append(
+                f"contract[{i}]: comparative or vague wording without a number "
+                f'(e.g. prefer "above 40%" over "high relative to"): {contract!r}'
+            )
+        cl = contract.lower()
+        mentions_role = any(role.lower() in cl for role in roles)
+        mentions_state = any(st.lower() in cl for st in state_names)
+        subjects = set()
+        for st in state_names:
+            m = STATE_SUBJECT.search(st)
+            if m:
+                subjects.add(st[: m.start()].strip().lower())
+        mentions_subject = any(sub and sub in cl for sub in subjects)
+        if not mentions_role and not mentions_state and not mentions_subject:
+            warnings.append(
+                f"contract[{i}]: names no declared Role or State "
+                f"(hard to test): {contract!r}"
+            )
 
     return errors, warnings
 
 
 def is_genesis_requires(req: str) -> bool:
     return bool(GENESIS_REQUIRES.match(req.strip()))
+
+
+def is_genesis_process(proc: dict) -> bool:
+    """True if every requires entry is a genesis condition (subject not yet existing)."""
+    reqs = [r for r in _as_list(proc.get("requires")) if isinstance(r, str)]
+    if not reqs:
+        return False
+    return all(is_genesis_requires(r) for r in reqs)
+
+
+def process_can_fire(proc: dict, reachable: set[str]) -> bool:
+    """requires list = OR: fire if any non-genesis require is reachable, or genesis-only."""
+    reqs = [r for r in _as_list(proc.get("requires")) if isinstance(r, str)]
+    if not reqs:
+        return True
+    state_reqs = [r for r in reqs if not is_genesis_requires(r)]
+    if not state_reqs:
+        return True  # pure genesis
+    return any(r in reachable for r in state_reqs)
+
+
+def compute_reachable_states(processes: list[dict], state_set: set[str]) -> set[str]:
+    reachable: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        for proc in processes:
+            if not process_can_fire(proc, reachable):
+                continue
+            for res in _as_list(proc.get("results")):
+                if isinstance(res, str) and res in state_set and res not in reachable:
+                    reachable.add(res)
+                    changed = True
+    return reachable
 
 
 def main(argv: list[str] | None = None) -> int:

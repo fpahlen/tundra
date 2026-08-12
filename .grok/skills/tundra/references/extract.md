@@ -65,7 +65,10 @@ messy intent → draft .tundra reframe (active listening) → correct → save m
 8. **Declare Relationships** when ownership/participation matters.
 
 9. **Every Process** is a YAML map with `name`, `actor`, `requires`, `results`.  
-   Actor is a declared Role or `System`.
+   Actor is a declared Role or `System` (not under `roles:`).  
+   At least one **genesis** Process so subjects can exist.  
+   Prefer Contract **ids** + `enforced_by`.  
+   `requires` list = OR; `results` list = AND.
 
 10. **Decorators** only as optional fields listed in `format.md`.
 

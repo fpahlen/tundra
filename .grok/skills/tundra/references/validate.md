@@ -36,6 +36,10 @@ User-named paths always win.
 
 - Actor is a declared Role or `System`.
 
+### 5b. Genesis and reachability
+
+- Model has a genesis Process; States are reachable from genesis (not only local cycles).
+
 ### 6. Decorators
 
 - Only known fields from `format.md`; sensible placement.

@@ -51,6 +51,11 @@ processes:
     requires: Article is Submitted for Review
     results: Article is Rejected
 
+  - name: Expire review
+    actor: System
+    requires: Article is Submitted for Review
+    results: Article is Draft
+
   - name: Unpublish Article
     actor: Editor
     requires: Article is Published
