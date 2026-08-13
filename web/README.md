@@ -81,6 +81,24 @@ The Facilitator still produces YAML (for the right panel), but chat **strips** f
 | `POST` | `/api/sessions/{id}/export` | Download model (if allowed) |
 | `POST` | `/api/sessions/{id}/abandon` | Abandon session |
 
+## Snapshots for the coding agent
+
+I (and other agents) **cannot see the browser**. After each chat/validate/export the server writes:
+
+```text
+web/debug/last-session.md      # latest conversation + draft YAML + checklist + validation
+web/debug/session-<id>.md      # per-session copy
+```
+
+That directory is **gitignored**.
+
+| Who | How |
+| --- | --- |
+| You | Click **Snapshot for agent**, or just keep chatting (auto-saves) |
+| Agent | `read_file` on `web/debug/last-session.md`, or `curl -s http://127.0.0.1:8001/api/debug/last` |
+
+Also: `GET /api/sessions` (list ids), `GET /api/sessions/{id}/snapshot`.
+
 ## Limits (v0)
 
 - In-memory sessions (lost on restart)

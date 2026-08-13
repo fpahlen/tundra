@@ -130,6 +130,7 @@ class Session:
 class SessionStore:
     def __init__(self) -> None:
         self._sessions: dict[str, Session] = {}
+        self._order: list[str] = []
 
     def create(self) -> Session:
         sid = uuid.uuid4().hex[:12]
@@ -146,10 +147,17 @@ class SessionStore:
             )
         )
         self._sessions[sid] = s
+        self._order.append(sid)
         return s
 
     def get(self, sid: str) -> Session | None:
         return self._sessions.get(sid)
+
+    def list_ids(self) -> list[str]:
+        return list(self._order)
+
+    def last_id(self) -> str | None:
+        return self._order[-1] if self._order else None
 
     def abandon(self, sid: str) -> Session | None:
         s = self._sessions.get(sid)

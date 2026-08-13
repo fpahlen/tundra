@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,7 @@ from app.llm import (
 )
 from app.paths import REPO_ROOT, WEB_ROOT
 from app.sessions import Message, store
+from app.snapshot import LAST_PATH, write_snapshot
 from app.validate import validate_tundra_yaml
 
 # Load secrets from local .env only (never commit .env — see .gitignore)
@@ -51,7 +52,14 @@ def health() -> dict:
 @app.post("/api/sessions")
 def create_session() -> dict:
     s = store.create()
+    write_snapshot(s)
     return s.public()
+
+
+@app.get("/api/sessions")
+def list_sessions() -> dict:
+    """Dev helper: list in-memory session ids (newest last)."""
+    return {"sessions": store.list_ids(), "last": store.last_id()}
 
 
 @app.get("/api/sessions/{sid}")
@@ -60,6 +68,33 @@ def get_session(sid: str) -> dict:
     if not s:
         raise HTTPException(404, "session not found")
     return s.public()
+
+
+@app.get("/api/sessions/{sid}/snapshot")
+def session_snapshot(sid: str) -> Response:
+    """Markdown dump for agents: conversation + draft + checklist + validation."""
+    s = store.get(sid)
+    if not s:
+        raise HTTPException(404, "session not found")
+    path = write_snapshot(s)
+    return Response(
+        path.read_text(encoding="utf-8"),
+        media_type="text/markdown; charset=utf-8",
+    )
+
+
+@app.get("/api/debug/last")
+def debug_last() -> Response:
+    """Latest auto-written snapshot (same as web/debug/last-session.md)."""
+    if not LAST_PATH.is_file():
+        raise HTTPException(
+            404,
+            "no snapshot yet — use the interview UI or POST /api/sessions first",
+        )
+    return Response(
+        LAST_PATH.read_text(encoding="utf-8"),
+        media_type="text/markdown; charset=utf-8",
+    )
 
 
 @app.post("/api/sessions/{sid}/chat")
@@ -118,6 +153,7 @@ async def chat(sid: str, body: ChatIn) -> dict:
             s.draft_state = "Structurally invalid"
 
     s.session_state = "Awaiting Author input"
+    write_snapshot(s)
     return s.public()
 
 
@@ -134,6 +170,7 @@ def validate(sid: str) -> dict:
         s.draft_state = "Structurally valid"
     else:
         s.draft_state = "Structurally invalid"
+    write_snapshot(s)
     return {"session": s.public(), "report": report}
 
 
@@ -150,6 +187,7 @@ def export(sid: str) -> PlainTextResponse:
         )
     assert s.draft_yaml
     s.draft_state = "Exported"
+    write_snapshot(s)
     filename = "model.tundra"
     # try tundra: name
     for line in s.draft_yaml.splitlines():
@@ -172,6 +210,7 @@ def abandon(sid: str) -> dict:
     s = store.abandon(sid)
     if not s:
         raise HTTPException(404, "session not found")
+    write_snapshot(s)
     return s.public()
 
 

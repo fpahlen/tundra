@@ -49,3 +49,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Interview web debug snapshots (agent-readable; may contain user text)
+web/debug/

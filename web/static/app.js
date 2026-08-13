@@ -92,6 +92,7 @@ function applySession(s) {
   const hasDraft = Boolean(s.draft_yaml);
   $("validate-btn").disabled = !hasDraft || s.session_state === "Abandoned";
   $("export-btn").disabled = !s.export_allowed;
+  $("snapshot-btn").disabled = !s.id;
   $("abandon-btn").disabled = s.session_state === "Abandoned";
   $("send-btn").disabled = s.session_state === "Abandoned";
 }
@@ -163,6 +164,22 @@ $("export-btn").addEventListener("click", async () => {
     // refresh session state (exported)
     const s = await api(`/api/sessions/${session.id}`);
     applySession(s);
+  } catch (err) {
+    alert(err.message);
+  }
+});
+
+$("snapshot-btn").addEventListener("click", async () => {
+  if (!session) return;
+  try {
+    const res = await fetch(`/api/sessions/${session.id}/snapshot`);
+    if (!res.ok) throw new Error(await res.text());
+    // Also confirm file path for the user
+    alert(
+      "Snapshot written for the coding agent:\n" +
+        "web/debug/last-session.md\n\n" +
+        "(Also available at GET /api/debug/last)"
+    );
   } catch (err) {
     alert(err.message);
   }
