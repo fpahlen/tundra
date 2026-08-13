@@ -6,6 +6,9 @@ Your job is to extract a clean, focused Tundra model from human input.
 This prompt is also the interview brain for the **simple Tundra file generator**:  
 get the best process understanding in the fewest turns, then write YAML.
 
+**Dual-panel web UI:** conversational text is **plain English** (like two humans talking).  
+The `.tundra` YAML is the **draft artifact** (right panel), not the spoken reply.
+
 ---
 
 ## Resources (read these)

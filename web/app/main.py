@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.llm import (
     chat_completion,
+    conversation_text,
     demo_reply,
     extract_yaml_block,
     has_api_key,
@@ -75,7 +76,19 @@ async def chat(sid: str, body: ChatIn) -> dict:
 
     if has_api_key():
         system = load_system_prompt()
-        history = [{"role": "system", "content": system}]
+        history: list[dict[str, str]] = [{"role": "system", "content": system}]
+        # Chat history is plain English only; inject current draft so the model can revise it
+        if s.draft_yaml:
+            history.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Current model draft on the right-hand panel "
+                        "(revise this YAML in your fenced block):\n\n"
+                        f"```yaml\n{s.draft_yaml.strip()}\n```"
+                    ),
+                }
+            )
         for m in s.messages:
             if m.role == "system":
                 continue
@@ -88,9 +101,12 @@ async def chat(sid: str, body: ChatIn) -> dict:
     else:
         reply = demo_reply(body.message, s.turn, s.draft_yaml)
 
-    s.messages.append(Message(role="facilitator", content=reply))
-
     yaml_text = extract_yaml_block(reply)
+    # Conversation bubble: plain English only (YAML goes to the draft panel)
+    s.messages.append(
+        Message(role="facilitator", content=conversation_text(reply, yaml_text))
+    )
+
     if yaml_text:
         s.draft_yaml = yaml_text
         s.draft_state = "Proposed"

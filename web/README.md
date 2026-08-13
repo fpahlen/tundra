@@ -61,12 +61,14 @@ Open http://127.0.0.1:8001 (or whatever port you chose).
 
 | Feature | Behaviour |
 | --- | --- |
-| Chat | Author messages → Facilitator (extract prompt + `tundra.md`) |
-| Draft | YAML block extracted; shown in right panel |
+| **Conversation (left)** | Plain English only — human dialogue about what the model means |
+| **Model draft (right)** | Full `.tundra` YAML extracted from a fenced block in the LLM reply |
 | Auto-validate | After each draft, runs `tools/check_tundra.py` rules |
 | Checklist | Pre-export gates (structural, genesis, inferred, vagueness, …) |
 | Export | Download `.tundra` only when checklist **blocking** items pass |
 | Demo mode | No API key → deterministic sample reframe |
+
+The Facilitator still produces YAML (for the right panel), but chat **strips** fenced YAML so the conversation does not dump the whole file.
 
 ## API
 

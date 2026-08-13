@@ -10,8 +10,11 @@ import httpx
 
 from app.paths import EXTRACT_PROMPT, FORMAT_MD, TUNDRA_MD
 
+YAML_FENCE = re.compile(r"```(?:yaml|tundra|yml)?\s*\n.*?```", re.S | re.I)
+
 
 def load_system_prompt() -> str:
+    """System prompt for the web dual-panel Facilitator."""
     parts = [
         EXTRACT_PROMPT.read_text(encoding="utf-8"),
         "\n\n---\n# tundra.md (language definition)\n\n",
@@ -20,24 +23,59 @@ def load_system_prompt() -> str:
         parts.append(TUNDRA_MD.read_text(encoding="utf-8"))
     elif FORMAT_MD.is_file():
         parts.append(FORMAT_MD.read_text(encoding="utf-8"))
+
     parts.append(
-        "\n\n---\nYou are the Facilitator in a web interview. "
-        "On turn 1 emit a full draft .tundra YAML in a ```yaml fenced block. "
-        "On later turns lead with a ## Changes diff, then the full updated YAML "
-        "in a fenced block, then Gaps and an open question. "
-        "Never invent measurable thresholds. Prefer Contract ids and enforced_by.\n"
+        """
+
+---
+# Web interview UI — dual channel (mandatory)
+
+You are the Facilitator in a **two-panel** web interview:
+
+| Panel | Content |
+| --- | --- |
+| **Conversation (left)** | What the Author *reads as chat* — **plain English only** |
+| **Model draft (right)** | The `.tundra` YAML — machine artifact |
+
+## What you must produce each turn
+
+1. **Spoken reply (plain English first)** — like two humans talking:
+   - Interpret what the model captures (who may do what, lifecycle, key rules).
+   - Note what you deliberately left out and why.
+   - List open gaps in short prose (not a wall of structure labels if avoidable).
+   - End with an **open** question (“What other questions do you have?” /
+     “What did I get wrong or leave out?”).
+   - On later turns, explain **what changed** in plain English (not a YAML dump).
+   - Do **not** paste the full model as the main chat message.
+   - Do **not** open with a ```yaml fence.
+
+2. **Hidden machine block (required, after the English)** — exactly one fenced block
+   so the server can update the right-hand draft:
+
+```yaml
+tundra: …
+# full model here
+```
+
+The UI **strips** that fence from chat and shows it only in the Model draft panel.
+If you omit the fence, the draft will not update.
+
+## Modelling rules (unchanged)
+
+Never invent measurable thresholds. Prefer Contract ids and enforced_by.
+Genesis Process required. Use outcomes for exclusive branches.
+Mark inferred Contracts with source: inferred.
+"""
     )
     return "".join(parts)
 
 
 def demo_reply(user_message: str, turn: int, prior_yaml: str | None) -> str:
-    """Deterministic facilitator when no API key is set."""
-    name = "Interview draft"
-    # crude name from first line of user text
+    """Deterministic facilitator when no API key is set (English + yaml fence)."""
     first = user_message.strip().split("\n")[0][:60] or "business process"
     slug = re.sub(r"[^a-z0-9]+", "-", first.lower()).strip("-")[:40] or "process"
 
-    draft = f"""tundra: {name} ({slug})
+    draft = f"""tundra: Interview draft ({slug})
 
 roles:
   - Author
@@ -92,34 +130,32 @@ scenarios:
 """
 
     if turn <= 1 or not prior_yaml:
-        return (
-            "Here is a first Tundra reframe of what you described "
-            "(demo mode — set XAI_API_KEY or OPENAI_API_KEY for a live model).\n\n"
-            f"```yaml\n{draft.strip()}\n```\n\n"
-            "## Gaps\n"
-            "- Confirm Roles and whether `source: inferred` Contracts match your domain.\n"
-            "- Add measurable thresholds if any decision branches exist.\n\n"
-            "## Check\n"
-            "What other questions do you have?\n"
+        english = (
+            f"Here's how I understood it (demo mode — add XAI_API_KEY in web/.env for a live model).\n\n"
+            f"You're describing a simple case lifecycle: the Author opens a case, can work on it "
+            f"while it's in draft, then submits it. After that a Clerk can close it. "
+            f"I treated “{first}\" as the starting description and kept the model thin.\n\n"
+            f"Two Contracts are marked inferred — please confirm or correct them.\n\n"
+            f"What other questions do you have?"
         )
+        return f"{english}\n\n```yaml\n{draft.strip()}\n```\n"
 
-    return (
-        "## Changes\n"
-        f"- Incorporated your note: {user_message.strip()[:120]!r}\n"
-        "- Kept structure; please confirm inferred Contracts.\n\n"
-        f"```yaml\n{(prior_yaml or draft).strip()}\n```\n\n"
-        "## Gaps\n"
-        "- Still confirm any `source: inferred` items.\n\n"
-        "## Check\n"
-        "What did I get wrong or leave out?\n"
+    note = user_message.strip()[:160]
+    english = (
+        f"I've taken your latest note into account: {note!r}.\n\n"
+        f"The draft model on the right is unchanged in demo mode except as a placeholder — "
+        f"with a live key I would revise the YAML to match. Please confirm any inferred rules "
+        f"or tell me what to add (e.g. cancellation, disputes).\n\n"
+        f"What did I get wrong or leave out?"
     )
+    body = (prior_yaml or draft).strip()
+    return f"{english}\n\n```yaml\n{body}\n```\n"
 
 
 async def chat_completion(messages: list[dict[str, str]]) -> str:
     """Call OpenAI-compatible Chat Completions API."""
     api_key = os.environ.get("XAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        # Caller should use demo_reply instead
         raise RuntimeError("No API key")
 
     base = os.environ.get("TUNDRA_LLM_BASE_URL")
@@ -154,13 +190,39 @@ def extract_yaml_block(text: str) -> str | None:
     m = re.search(r"```(?:yaml|tundra|yml)?\s*\n(.*?)```", text, re.S | re.I)
     if m:
         return m.group(1).strip() + "\n"
-    # bare document starting with tundra:
     if re.search(r"(?m)^tundra:\s*", text):
-        # take from first tundra: to end or next ##
         m2 = re.search(r"(?ms)^(tundra:\s*.*?)(?=^## |\Z)", text)
         if m2:
             return m2.group(1).strip() + "\n"
     return None
+
+
+def strip_yaml_fences(text: str) -> str:
+    """Remove fenced YAML/tundra blocks so chat shows plain English only."""
+    cleaned = YAML_FENCE.sub("", text)
+    # Also drop a bare trailing tundra: document if model dumped without fences
+    cleaned = re.sub(
+        r"(?ms)^tundra:\s*.*",
+        "",
+        cleaned,
+    )
+    # Collapse excess blank lines
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned
+
+
+def conversation_text(reply: str, yaml_text: str | None) -> str:
+    """Text stored in the chat bubble (no YAML wall)."""
+    say = strip_yaml_fences(reply)
+    if say:
+        return say
+    if yaml_text:
+        return (
+            "I've updated the model draft on the right from your description. "
+            "Please review it there.\n\n"
+            "What other questions do you have?"
+        )
+    return reply.strip() or "I didn't catch a model update — could you say more?"
 
 
 def has_api_key() -> bool:
