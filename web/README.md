@@ -12,21 +12,50 @@ From this directory:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
-# Demo facilitator (no API key) — UI fully usable
-uvicorn app.main:app --reload --app-dir .
-
-# Live LLM (OpenAI-compatible)
-export XAI_API_KEY=...          # preferred for Grok
-# or: export OPENAI_API_KEY=...
-# optional:
-# export TUNDRA_LLM_BASE_URL=https://api.x.ai/v1
-# export TUNDRA_LLM_MODEL=grok-3
-
-uvicorn app.main:app --reload --app-dir . --port 8000
 ```
 
-Open http://127.0.0.1:8000
+### Demo mode (no AI key)
+
+```bash
+uvicorn app.main:app --reload --app-dir . --port 8001
+```
+
+Header badge shows **LLM: demo**.
+
+### Live AI (xAI / Grok)
+
+1. Copy the example env file and add your key (**never commit `.env`**):
+
+```bash
+cp .env.example .env
+# edit .env — set XAI_API_KEY=...
+```
+
+2. Start the server (loads `web/.env` automatically via `python-dotenv`):
+
+```bash
+uvicorn app.main:app --reload --app-dir . --port 8001
+```
+
+3. Confirm the header badge shows **LLM: live**.
+
+| Variable | Purpose |
+| --- | --- |
+| `XAI_API_KEY` | Preferred — xAI Grok (OpenAI-compatible API) |
+| `OPENAI_API_KEY` | Alternative provider |
+| `TUNDRA_LLM_BASE_URL` | Override API base (default `https://api.x.ai/v1` when using xAI) |
+| `TUNDRA_LLM_MODEL` | Override model (default `grok-3` for xAI) |
+
+You can also `export XAI_API_KEY=...` in the shell instead of a file.
+
+### Secrets and GitHub
+
+- **Do** put real keys only in `web/.env` or the process environment.
+- **Do not** commit `.env`, paste keys into issues, or log them.
+- Root [`.gitignore`](../.gitignore) already ignores `.env` and `.env.*`, and allows `.env.example`.
+- For production, use the host’s secret store (not a checked-in file).
+
+Open http://127.0.0.1:8001 (or whatever port you chose).
 
 ## What it does
 

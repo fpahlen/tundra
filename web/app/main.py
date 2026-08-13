@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,8 +17,13 @@ from app.llm import (
     has_api_key,
     load_system_prompt,
 )
+from app.paths import REPO_ROOT, WEB_ROOT
 from app.sessions import Message, store
 from app.validate import validate_tundra_yaml
+
+# Load secrets from local .env only (never commit .env — see .gitignore)
+load_dotenv(WEB_ROOT / ".env")
+load_dotenv(REPO_ROOT / ".env")
 
 STATIC = Path(__file__).resolve().parents[1] / "static"
 
