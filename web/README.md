@@ -68,7 +68,7 @@ Open http://127.0.0.1:8001 (or whatever port you chose).
 | Export | Download `.tundra` only when checklist **blocking** items pass |
 | Demo mode | No API key → deterministic sample reframe |
 
-The Facilitator still produces YAML (for the right panel), but chat **strips** fenced YAML so the conversation does not dump the whole file.
+The Facilitator still produces YAML (for the right panel), but chat **strips** fenced YAML so the conversation does not dump the whole file. Chat bubbles render light markdown, stay **process-first** (no tooling meta), say **assumed** for rules the draft marks `source: inferred`, **highlight those blocks** in the draft panel, and **surface failing pre-export checklist items** after each draft update.
 
 ## API
 

@@ -19,7 +19,28 @@
     },
     "relationships": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text"],
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Role is Relationship of subject (plain English)"
+              },
+              "source": {
+                "type": "string",
+                "enum": ["stated", "inferred"],
+                "description": "stated = human said it; inferred = AI assumed — must confirm before export"
+              }
+            }
+          }
+        ]
+      }
     },
     "contracts": {
       "type": "array",

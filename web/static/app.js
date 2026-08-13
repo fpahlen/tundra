@@ -26,6 +26,65 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Safe light markdown: paragraphs, breaks, bold/italic, unordered lists. */
+function renderLightMarkdown(text) {
+  const raw = String(text || "").replace(/\r\n/g, "\n").trim();
+  if (!raw) return "";
+
+  const blocks = raw.split(/\n{2,}/);
+  const html = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    let para = [];
+    let list = [];
+
+    const flushPara = () => {
+      if (!para.length) return;
+      const body = inlineMd(escapeHtml(para.join("\n")).replace(/\n/g, "<br>"));
+      html.push(`<p>${body}</p>`);
+      para = [];
+    };
+    const flushList = () => {
+      if (!list.length) return;
+      const items = list
+        .map((item) => `<li>${inlineMd(escapeHtml(item))}</li>`)
+        .join("");
+      html.push(`<ul>${items}</ul>`);
+      list = [];
+    };
+
+    for (const line of lines) {
+      const m = line.match(/^\s*[-*]\s+(.*)$/);
+      if (m) {
+        flushPara();
+        list.push(m[1]);
+      } else {
+        flushList();
+        para.push(line);
+      }
+    }
+    flushList();
+    flushPara();
+  }
+  return html.join("");
+}
+
+function inlineMd(escaped) {
+  // **bold** first, then single-asterisk *italic* (avoid eating **)
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+}
+
 function renderMessages(messages) {
   const el = $("messages");
   el.innerHTML = "";
@@ -33,10 +92,42 @@ function renderMessages(messages) {
     if (m.role === "system") continue;
     const div = document.createElement("div");
     div.className = `msg ${m.role === "author" ? "author" : "facilitator"}`;
-    div.textContent = m.content;
+    div.innerHTML = renderLightMarkdown(m.content);
     el.appendChild(div);
   }
   el.scrollTop = el.scrollHeight;
+}
+
+/** Highlight YAML list items that contain source: inferred (assumed rules). */
+function renderDraft(yamlText) {
+  const el = $("draft");
+  if (!yamlText) {
+    el.textContent = "// No draft yet.";
+    return;
+  }
+  const lines = String(yamlText).replace(/\r\n/g, "\n").split("\n");
+  const highlight = new Set();
+  const sourceRe = /^\s*source:\s*inferred\b/i;
+  const listItemRe = /^\s*-\s/;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!sourceRe.test(lines[i])) continue;
+    highlight.add(i);
+    for (let j = i - 1; j >= 0; j--) {
+      highlight.add(j);
+      if (listItemRe.test(lines[j])) break;
+      // stop if we leave the object (dedent past nested keys without list start)
+      if (lines[j].trim() === "") break;
+    }
+  }
+
+  el.innerHTML = lines
+    .map((line, i) => {
+      const cls = highlight.has(i) ? "draft-line inferred" : "draft-line";
+      const empty = line.length === 0 ? " " : line;
+      return `<span class="${cls}">${escapeHtml(empty)}</span>`;
+    })
+    .join("\n");
 }
 
 function renderChecklist(items) {
@@ -86,7 +177,7 @@ function applySession(s) {
         ? "bad"
         : "");
   renderMessages(s.messages);
-  $("draft").textContent = s.draft_yaml || "// No draft yet.";
+  renderDraft(s.draft_yaml);
   renderChecklist(s.checklist);
   renderReport(s.last_validation);
   const hasDraft = Boolean(s.draft_yaml);

@@ -37,34 +37,72 @@ You are the Facilitator in a **two-panel** web interview:
 | **Conversation (left)** | What the Author *reads as chat* — **plain English only** |
 | **Model draft (right)** | The `.tundra` YAML — machine artifact |
 
+## Tone (conversation) — process-first
+
+- Collaborative, light. Prove you **understand their process**, not that you
+  wrote a “complete” model.
+- Prefer **Things we haven’t touched** over “Gaps to confirm”.
+- Use light markdown (`**bold**`, short `-` lists). The UI renders it.
+- In chat, say **I assumed…** / **assumptions** — never the machine word
+  “inferred”. In YAML, still mark with `source: inferred`.
+
+## Do not say in chat (meta / tooling)
+
+Skip self-talk about methodology or file shape, e.g.:
+- “I kept the model thin / complete / testable”
+- “I added Contract ids / a genesis process / enforced_by so…”
+- Export checklist, schema, or “the draft is ready”
+
+The server may append structural notes when export is blocked; you don’t.
+
+## Grounding
+
+- Only mention actors, states, or side-flows from **this** conversation,
+  or ask **one** open question grounded in what they said.
+- **Do not** invent domain extras they never mentioned (dispute, payment,
+  approval, cancellation, etc.) unless they used those words.
+- If nothing natural is open, skip the omission list.
+
+## Assumptions must match the draft
+
+- In chat, only call out assumptions that appear as `source: inferred` in
+  **this turn’s** YAML.
+- Prefer marking **Contracts**. For a relationship, use object form so the
+  mark is visible:
+
+```yaml
+relationships:
+  - text: Manager is Creator of Invoice
+    source: inferred
+```
+
+- Never claim “one relationship is inferred” if the YAML still has a bare string.
+
 ## What you must produce each turn
 
-1. **Spoken reply (plain English first)** — like two humans talking:
-   - Interpret what the model captures (who may do what, lifecycle, key rules).
-   - Note what you deliberately left out and why.
-   - List open gaps in short prose (not a wall of structure labels if avoidable).
-   - End with an **open** question (“What other questions do you have?” /
-     “What did I get wrong or leave out?”).
-   - On later turns, explain **what changed** in plain English (not a YAML dump).
-   - Do **not** paste the full model as the main chat message.
-   - Do **not** open with a ```yaml fence.
+1. **Spoken reply (plain English first)**:
+   - Short reframe of the process (who does what, lifecycle, hard rules).
+   - Softly list **assumptions** you made (only those marked `source: inferred`
+     in the YAML) — invite confirm or correct.
+   - End with an **open** question (“What did I get wrong or leave out?”).
+   - Later turns: what **changed** in plain English.
+   - Do **not** paste the full model or open with a ```yaml fence.
 
-2. **Hidden machine block (required, after the English)** — exactly one fenced block
-   so the server can update the right-hand draft:
+2. **Hidden machine block (required, after the English)** — one fenced block
+   for the right-hand draft:
 
 ```yaml
 tundra: …
 # full model here
 ```
 
-The UI **strips** that fence from chat and shows it only in the Model draft panel.
-If you omit the fence, the draft will not update.
+The UI strips that fence from chat.
 
 ## Modelling rules (unchanged)
 
 Never invent measurable thresholds. Prefer Contract ids and enforced_by.
 Genesis Process required. Use outcomes for exclusive branches.
-Mark inferred Contracts with source: inferred.
+Mark AI-only rules with `source: inferred` (chat still says “assumed”).
 """
     )
     return "".join(parts)
@@ -131,11 +169,12 @@ scenarios:
 
     if turn <= 1 or not prior_yaml:
         english = (
-            f"Here's how I understood it (demo mode — add XAI_API_KEY in web/.env for a live model).\n\n"
+            f"**Here's how I heard it** (demo mode — add XAI_API_KEY in web/.env for a live model).\n\n"
             f"You're describing a simple case lifecycle: the Author opens a case, can work on it "
             f"while it's in draft, then submits it. After that a Clerk can close it. "
-            f"I treated “{first}\" as the starting description and kept the model thin.\n\n"
-            f"Two Contracts are marked inferred — please confirm or correct them.\n\n"
+            f"I treated “{first}\" as the starting description.\n\n"
+            f"**I assumed** two rules that weren’t fully spelled out (only the Author starts a case; "
+            f"only a Clerk advances it after submit) — please confirm or correct them.\n\n"
             f"What other questions do you have?"
         )
         return f"{english}\n\n```yaml\n{draft.strip()}\n```\n"
@@ -143,9 +182,9 @@ scenarios:
     note = user_message.strip()[:160]
     english = (
         f"I've taken your latest note into account: {note!r}.\n\n"
-        f"The draft model on the right is unchanged in demo mode except as a placeholder — "
-        f"with a live key I would revise the YAML to match. Please confirm any inferred rules "
-        f"or tell me what to add (e.g. cancellation, disputes).\n\n"
+        f"The draft on the right is unchanged in demo mode — with a live key I would revise it "
+        f"to match. Please confirm any assumptions I made, or add what I missed from "
+        f"**this** process.\n\n"
         f"What did I get wrong or leave out?"
     )
     body = (prior_yaml or draft).strip()

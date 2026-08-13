@@ -219,7 +219,11 @@ roles:
   - <Role name>
 
 relationships:
+  # thin form:
   - <Role> is <Relationship> of <subject>
+  # or object form when the AI assumed the link (must confirm before export):
+  - text: <Role> is <Relationship> of <subject>
+    source: inferred
 
 contracts:
   # thin form (still valid):

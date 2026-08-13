@@ -13,6 +13,32 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _contracts_have_ids(yaml_text: str) -> bool:
+    """True if every Contract is an object with a non-empty id (preferred form)."""
+    if not yaml_text.strip():
+        return False
+    try:
+        import yaml  # local: same dep as checker
+
+        doc = yaml.safe_load(yaml_text)
+    except Exception:  # noqa: BLE001
+        doc = None
+    if isinstance(doc, dict):
+        contracts = doc.get("contracts")
+        if not contracts:
+            return True  # nothing to id
+        if not isinstance(contracts, list):
+            return False
+        for c in contracts:
+            if isinstance(c, dict) and str(c.get("id") or "").strip():
+                continue
+            # bare string Contracts have no id
+            return False
+        return True
+    # Fallback: list form `- id: foo` or nested `id: foo`
+    return bool(re.search(r"(?m)^\s*-?\s*id:\s+\S+", yaml_text))
+
+
 @dataclass
 class Message:
     role: str  # author | facilitator | system
@@ -68,14 +94,22 @@ class Session:
         errors = v.get("errors") or []
         warnings = v.get("warnings") or []
 
+        # Genesis: "nothing", "no X exist(s)", "X does/do not exist", "no X yet"
         has_genesis = bool(
             re.search(
-                r"requires:\s*(nothing|no .+ exists|.+ does not exist)",
+                r"requires:\s*("
+                r"nothing"
+                r"|no \S+(?: \S+)? exists?"
+                r"|.+ does not exist"
+                r"|.+ do not exist"
+                r"|no \S+(?: \S+)? yet"
+                r")",
                 y,
                 re.I,
             )
         )
-        has_ids = bool(re.search(r"(?m)^\s+id:\s+\S+", y))
+        # Contract ids: prefer real YAML parse (list form is `- id: foo`, not indented `id:`)
+        has_ids = _contracts_have_ids(y)
         has_enforced = "enforced_by:" in y
         inferred = bool(re.search(r"source:\s*inferred", y, re.I))
         vague = [w for w in warnings if "vague" in w.lower() or "comparative" in w.lower()]
@@ -111,10 +145,10 @@ class Session:
             },
             {
                 "id": "inferred",
-                "label": "No unconfirmed source: inferred",
+                "label": "No unconfirmed assumptions (source: inferred)",
                 "ok": not inferred,
                 "blocking": True,
-                "detail": "Confirm or remove inferred Contracts" if inferred else "",
+                "detail": "Confirm or drop assumed rules before export" if inferred else "",
             },
             {
                 "id": "vagueness",
@@ -125,6 +159,50 @@ class Session:
             },
         ]
         return items
+
+    def checklist_conversation_notes(self) -> str | None:
+        """Soft plain-English lines for failing checklist items (chat, not labels)."""
+        friendly = {
+            "structural": (
+                "The draft still has structural issues the checker flags — "
+                "worth fixing before export."
+            ),
+            "genesis": (
+                "We still need a clear “how this starts” step (genesis) — "
+                "usually a first process with something like "
+                "`requires: no Hours exist` (or `nothing`)."
+            ),
+            "ids": (
+                "Contracts work better with short `id`s so we can point at them "
+                "from processes and scenarios."
+            ),
+            "enforced_by": (
+                "We haven’t linked Contracts to Processes yet "
+                "(`enforced_by`) — that makes the rules easier to test."
+            ),
+            "inferred": (
+                "I still have assumptions in the draft (highlighted on the right) — "
+                "please confirm or drop them so we don’t export unstated rules."
+            ),
+            "vagueness": (
+                "A rule still uses comparative wording without a number "
+                "(hard to test as-is)."
+            ),
+        }
+        fails = [it for it in self.checklist() if not it.get("ok")]
+        if not fails:
+            return None
+        lines = [
+            "**Things we haven’t settled yet** (also on the export checklist):",
+            "",
+        ]
+        for it in fails:
+            tip = friendly.get(it.get("id", ""), it.get("label", "Open checklist item"))
+            detail = (it.get("detail") or "").strip()
+            if detail and it.get("id") in ("structural", "vagueness"):
+                tip = f"{tip} ({detail})"
+            lines.append(f"- {tip}")
+        return "\n".join(lines)
 
 
 class SessionStore:
@@ -139,9 +217,10 @@ class SessionStore:
             Message(
                 role="facilitator",
                 content=(
-                    "Session started. Describe a business process in plain language "
-                    "(who does what, under which conditions, happy path and important errors). "
-                    "I will reframe it as a Tundra model for you to correct.\n\n"
+                    "Hi — walk me through a business process in plain language: "
+                    "who does what, under which conditions, the happy path, and any "
+                    "errors that matter. I’ll reframe it as a draft Tundra model on "
+                    "the right; we can correct it together.\n\n"
                     "What process should we model?"
                 ),
             )

@@ -138,9 +138,7 @@ async def chat(sid: str, body: ChatIn) -> dict:
 
     yaml_text = extract_yaml_block(reply)
     # Conversation bubble: plain English only (YAML goes to the draft panel)
-    s.messages.append(
-        Message(role="facilitator", content=conversation_text(reply, yaml_text))
-    )
+    say = conversation_text(reply, yaml_text)
 
     if yaml_text:
         s.draft_yaml = yaml_text
@@ -151,6 +149,13 @@ async def chat(sid: str, body: ChatIn) -> dict:
             s.draft_state = "Structurally valid"
         else:
             s.draft_state = "Structurally invalid"
+
+    # Surface failing export-checklist items in chat (human view of same facts)
+    notes = s.checklist_conversation_notes()
+    if notes:
+        say = f"{say.rstrip()}\n\n{notes}"
+
+    s.messages.append(Message(role="facilitator", content=say))
 
     s.session_state = "Awaiting Author input"
     write_snapshot(s)
@@ -183,7 +188,7 @@ def export(sid: str) -> PlainTextResponse:
         raise HTTPException(
             400,
             "export not allowed: need structural OK and pre-export checklist clear "
-            "(confirm inferred Contracts, fix vagueness, genesis, etc.)",
+            "(confirm assumed rules, fix vagueness, genesis, etc.)",
         )
     assert s.draft_yaml
     s.draft_state = "Exported"

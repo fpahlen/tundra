@@ -90,11 +90,41 @@ header .meta {
 
 .msg {
   max-width: 92%;
-  padding: 0.65rem 0.85rem;
-  border-radius: 10px;
-  line-height: 1.45;
+  padding: 0.7rem 0.95rem;
+  border-radius: 12px;
+  line-height: 1.5;
   font-size: 0.95rem;
-  white-space: pre-wrap;
+}
+
+.msg p {
+  margin: 0 0 0.55rem;
+}
+
+.msg p:last-child {
+  margin-bottom: 0;
+}
+
+.msg ul {
+  margin: 0.35rem 0 0.55rem;
+  padding-left: 1.2rem;
+}
+
+.msg ul:last-child {
+  margin-bottom: 0;
+}
+
+.msg li {
+  margin: 0.2rem 0;
+}
+
+.msg strong {
+  font-weight: 600;
+  color: #f0f4fa;
+}
+
+.msg em {
+  font-style: italic;
+  color: #c5d0e0;
 }
 
 .msg.author {
@@ -105,8 +135,10 @@ header .meta {
 
 .msg.facilitator {
   align-self: flex-start;
-  background: #1e2a3a;
-  border: 1px solid #354a63;
+  background: linear-gradient(145deg, #1c2a3c 0%, #1a2534 100%);
+  border: 1px solid #3a506c;
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 1px 0 rgba(91, 159, 212, 0.08);
 }
 
 .composer {
@@ -168,10 +200,24 @@ button:disabled {
   padding: 1rem;
   font-family: var(--mono);
   font-size: 0.78rem;
-  line-height: 1.4;
+  line-height: 1.45;
   background: #0c1016;
   color: #c5d0e0;
   white-space: pre;
+}
+
+#draft .draft-line {
+  display: block;
+  padding: 0 0.35rem;
+  margin: 0 -0.35rem;
+  border-radius: 3px;
+}
+
+#draft .draft-line.inferred {
+  background: rgba(201, 162, 39, 0.18);
+  border-left: 3px solid var(--warn);
+  padding-left: calc(0.35rem - 3px);
+  color: #f0e2a8;
 }
 
 .side {

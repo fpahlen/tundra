@@ -79,10 +79,17 @@ messy intent
         source: inferred   # or stated (default)
       ```
 
-      List every `source: inferred` item under **Gaps / confirm** until the human accepts or rejects it.  
-      **Do not export** while any inferred item remains unconfirmed.
+      In **chat**, list those items as **assumptions** (“I assumed…”) — never say the word
+      “inferred” to the Author. In YAML keep `source: inferred`.  
+      **Do not export** while any `source: inferred` item remains unconfirmed.  
+      Only talk about assumptions that are **marked in the draft**. For relationships, use
+      object form with `source: inferred` if you claim them as assumptions (bare strings cannot show it).
 
-   c. **Gaps** — concrete missing actors, subjects, thresholds, cancellation paths, etc.
+   c. **Things we haven’t touched** — only concrete open points grounded in **this** conversation.  
+      Soft tone; prove you understand the **process**, not that the file is “complete/testable.”  
+      **Do not** narrate tooling (“I added ids / genesis / kept it thin”).  
+      **Do not** invent stock domain extras (disputes, payments, approvals, cancellations, etc.)
+      unless the Author used those words. If nothing natural is open, skip this section.
 
    d. **Open question** — e.g. **“What other questions do you have?”** or **“What did I get wrong or leave out?”**  
       Never close with yes/no only (“Is this right?”, “Do you have any questions?”).
@@ -97,7 +104,7 @@ messy intent
    - state …
    ```
 
-   Then either the full updated YAML (or “full model on request”) plus remaining Gaps and an open question.  
+   Then either the full updated YAML (or “full model on request”) plus remaining open points and an open question.  
    Humans must not re-read a 60-line document every turn.
 
 4. **Thin-model / split heuristic**  
