@@ -98,11 +98,13 @@ Do **not** overload `source: stated | inferred` for law: that field marks AI ass
 | `kind` | Use when | States / Processes | Genesis |
 | --- | --- | --- | --- |
 | `lifecycle` (default if Processes present) | Instrument describes a subject lifecycle | Required | Required |
-| `obligations` | Standing duties with no lifecycle in the text | Optional | Not required |
+| `obligations` | Standing duties with no lifecycle in the text | **Forbidden** (duties + scenarios only) | Not required |
 
 ```yaml
-kind: obligations   # pure duties + Scenarios; no invented Draft→Approved machine
+kind: obligations   # pure duties + Scenarios; no states/processes allowed
 ```
+
+Declaring `kind: obligations` **and** States/Processes is an error (that would silence lifecycle checks).
 
 ### Provenance enforcement
 
@@ -110,8 +112,10 @@ The checker (`tools/check_tundra.py`) verifies more than shape:
 
 - Orphan `cite` without `regulation:` → error  
 - Regulatory models: every Contract is an object with `cite.article`  
-- When `sources/` excerpts exist for the pin: **quotes** must appear in the article file; **paragraph/point** markers must exist  
-- Missing article file under a known sources tree → error  
+- Sources are bound to **`regulation.id`** only (never another instrument’s excerpts)  
+- Working excerpts should declare `<!-- tundra-source: id=… -->`  
+- When excerpts exist for the pin: **quotes** must appear in the **cited paragraph** (and point) span, not merely somewhere in the article  
+- Missing article file under that pin’s sources tree → error  
 
 Coverage report (does not fail the build by itself):
 

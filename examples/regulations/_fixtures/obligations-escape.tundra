@@ -1,0 +1,28 @@
+# Must FAIL: kind: obligations with states/processes (escape hatch).
+
+tundra: obligations-escape-fixture
+kind: obligations
+
+roles:
+  - Clerk
+
+states:
+  - Claim is Settled
+  - Claim is Frozen
+
+processes:
+  - name: Settle claim
+    actor: Clerk
+    requires: Claim is Frozen
+    results: Claim is Settled
+
+contracts:
+  - id: only-clerk-settles
+    text: Only the Clerk may settle a Claim
+
+scenarios:
+  - name: "Error: wrong actor"
+    steps:
+      - Given the Claim is Frozen
+      - When someone other than the Clerk tries to settle
+      - Then the contract [only-clerk-settles] is broken

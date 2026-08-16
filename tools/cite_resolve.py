@@ -1,4 +1,8 @@
-"""Resolve Contract/Process cites against instrument working excerpts."""
+"""Resolve Contract/Process cites against instrument working excerpts.
+
+Sources are bound to regulation.id — never silently verify against another instrument.
+Quotes are matched inside the cited paragraph (and point) span, not the whole article.
+"""
 
 from __future__ import annotations
 
@@ -21,35 +25,87 @@ def normalise_legal(s: str) -> str:
     return t
 
 
-def find_sources_dir(model_path: Path, regulation_id: str, repo_root: Path) -> Path | None:
-    """Locate working excerpts for this instrument relative to the model or repo."""
-    rid = (regulation_id or "").strip()
+def parse_source_meta(text: str) -> dict[str, str]:
+    """Read instrument id from excerpt front-matter or HTML comment."""
+    meta: dict[str, str] = {}
+    # <!-- tundra-source: id=DORA instrument="Regulation (EU) 2022/2554" -->
+    m = re.search(r"<!--\s*tundra-source:\s*([^>]+?)-->", text, re.I)
+    if m:
+        blob = m.group(1)
+        for km in re.finditer(
+            r"""(\w+)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\S+))""", blob
+        ):
+            key = km.group(1).lower()
+            val = km.group(2) or km.group(3) or km.group(4) or ""
+            meta[key] = val.strip()
+        return meta
+    # YAML front matter
+    if text.lstrip().startswith("---"):
+        parts = text.lstrip().split("---", 2)
+        if len(parts) >= 3:
+            for line in parts[1].splitlines():
+                if ":" in line:
+                    k, _, v = line.partition(":")
+                    meta[k.strip().lower()] = v.strip().strip("\"'")
+    return meta
+
+
+def _dir_declares_instrument(sources_dir: Path, regulation_id: str) -> bool:
+    """True if directory is for this pin (path name or file front-matter)."""
+    rid = regulation_id.strip()
     rid_l = rid.lower()
+    # Path segment match: .../dora/sources or .../sources/dora
+    parts_l = [p.lower() for p in sources_dir.parts]
+    if rid_l in parts_l or rid_l.replace(" ", "-") in parts_l:
+        return True
+    # Any excerpt front-matter id match
+    for p in sources_dir.glob("*.md"):
+        if p.name.lower() == "readme.md":
+            continue
+        try:
+            meta = parse_source_meta(p.read_text(encoding="utf-8")[:2000])
+        except OSError:
+            continue
+        mid = (meta.get("id") or "").strip()
+        if mid and mid.lower() == rid_l:
+            return True
+    return False
+
+
+def find_sources_dir(
+    model_path: Path, regulation_id: str, repo_root: Path
+) -> Path | None:
+    """Locate working excerpts **for this regulation.id only** (no cross-instrument fallback)."""
+    rid = (regulation_id or "").strip()
+    if not rid:
+        return None
+    rid_l = rid.lower()
+    rid_slug = rid_l.replace(" ", "-")
+
     candidates: list[Path] = []
 
-    # Next to the model: .../dora/foo.tundra -> .../dora/sources
     parent = model_path.parent
-    candidates.append(parent / "sources")
-    # .../regulations/dora/*.tundra
-    if parent.name.lower() == rid_l or parent.name.lower() == rid_l.replace(" ", "-"):
+    # Model beside sources only if parent folder names the instrument
+    if parent.name.lower() in (rid_l, rid_slug):
         candidates.append(parent / "sources")
+    # Parent is sources/ itself?
+    if parent.name.lower() == "sources" and parent.parent.name.lower() in (
+        rid_l,
+        rid_slug,
+    ):
+        candidates.append(parent)
 
-    # examples/regulations/<id>/sources
     candidates.append(repo_root / "examples" / "regulations" / rid_l / "sources")
-    # sources/<id> (consumer app convention)
+    candidates.append(repo_root / "examples" / "regulations" / rid_slug / "sources")
     candidates.append(repo_root / "sources" / rid_l)
+    candidates.append(repo_root / "sources" / rid_slug)
     candidates.append(repo_root / "sources" / rid)
 
-    # Skill-bundled demo sources
-    skill_src = (
-        repo_root
-        / ".grok"
-        / "skills"
-        / "tundra"
-        / "references"
-        / "sources"
-    )
-    candidates.append(skill_src)
+    # Skill demo sources — only for DEMO-REG
+    if rid_l in ("demo-reg", "demoreg"):
+        candidates.append(
+            repo_root / ".grok" / "skills" / "tundra" / "references" / "sources"
+        )
 
     seen: set[Path] = set()
     for c in candidates:
@@ -57,10 +113,10 @@ def find_sources_dir(model_path: Path, regulation_id: str, repo_root: Path) -> P
             rp = c.resolve()
         except OSError:
             continue
-        if rp in seen:
+        if rp in seen or not rp.is_dir():
             continue
         seen.add(rp)
-        if rp.is_dir():
+        if _dir_declares_instrument(rp, rid):
             return rp
     return None
 
@@ -86,42 +142,79 @@ def article_file_candidates(article: str) -> list[str]:
     return names
 
 
-def load_article_excerpt(sources_dir: Path, article: str) -> tuple[Path | None, str | None]:
+def load_article_excerpt(
+    sources_dir: Path, article: str
+) -> tuple[Path | None, str | None]:
     for name in article_file_candidates(article):
         p = sources_dir / name
         if p.is_file():
             return p, p.read_text(encoding="utf-8")
-    # Fallback: search any *.md containing "## Article N" or "Article N"
     art_num = re.sub(r"[^\d]", "", str(article))
     if art_num:
         for p in sorted(sources_dir.glob("*.md")):
+            if p.name.lower() == "readme.md":
+                continue
             text = p.read_text(encoding="utf-8")
             if re.search(rf"(?i)##\s*article\s+{art_num}\b", text) or re.search(
-                rf"(?i)\barticle\s+{art_num}\b", text[:500]
+                rf"(?i)\barticle\s+{art_num}\b", text[:800]
             ):
                 return p, text
     return None, None
 
 
+def _slice_by_markers(
+    text: str,
+    pattern: re.Pattern[str],
+    key_fn,
+    *,
+    max_indent: int | None = None,
+) -> dict[str, str]:
+    """Slice text into spans keyed by regex match groups (first key wins)."""
+    matches = list(pattern.finditer(text))
+    spans: dict[str, str] = {}
+    for i, m in enumerate(matches):
+        if max_indent is not None:
+            indent = len(m.group(1).replace("\t", "    "))
+            if indent > max_indent:
+                continue
+        key = key_fn(m)
+        if not key or key in spans:
+            continue
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        spans[key] = text[start:end]
+    return spans
+
+
+def parse_paragraph_spans(text: str) -> dict[str, str]:
+    """Map paragraph number -> body text until the next top-level N. marker."""
+    return _slice_by_markers(
+        text,
+        re.compile(r"(?m)^(\s*)(\d+)\.\s+"),
+        lambda m: m.group(2),
+        max_indent=3,
+    )
+
+
 def parse_paragraph_markers(text: str) -> set[str]:
-    """Return paragraph numbers as strings: '1', '2', ... and points '2(a)' style keys."""
-    paragraphs: set[str] = set()
-    # Top-level numbered paragraphs: "1." or "1. " at line start (allow leading spaces)
-    for m in re.finditer(r"(?m)^\s*(\d+)\.\s+\S", text):
-        paragraphs.add(m.group(1))
-    return paragraphs
+    return set(parse_paragraph_spans(text).keys())
+
+
+def parse_point_spans(para_body: str) -> dict[str, str]:
+    """Map point letter -> body within one paragraph."""
+    return _slice_by_markers(
+        para_body,
+        re.compile(r"(?m)^(\s*)\(([a-z])\)\s+"),
+        lambda m: m.group(2).lower(),
+    )
 
 
 def parse_point_markers(text: str) -> set[str]:
-    """Return point letters found as (a), (b), ... at line start."""
-    points: set[str] = set()
-    for m in re.finditer(r"(?m)^\s*\(([a-z])\)\s+\S", text):
-        points.add(m.group(1))
-    return points
+    return set(parse_point_spans(text).keys())
 
 
 def split_paragraph_point(paragraph: str | None) -> tuple[str | None, str | None]:
-    """'2(a)' -> ('2', 'a'); '2' -> ('2', None); '2(a)(i)' -> ('2', 'a') for coarse check."""
+    """'2(a)' -> ('2', 'a'); '2' -> ('2', None)."""
     if not paragraph or not str(paragraph).strip():
         return None, None
     p = str(paragraph).strip()
@@ -131,16 +224,14 @@ def split_paragraph_point(paragraph: str | None) -> tuple[str | None, str | None
     m2 = re.match(r"^(\d+)$", p)
     if m2:
         return m2.group(1), None
-    # free text paragraph ref
     return p, None
 
 
-def quote_in_excerpt(quote: str, excerpt: str) -> bool:
+def quote_in_span(quote: str, span: str) -> bool:
     nq = normalise_legal(quote)
-    ne = normalise_legal(excerpt)
+    ne = normalise_legal(span)
     if not nq:
         return True
-    # Allow ellipsis in quote: match each segment
     if "..." in nq:
         parts = [p.strip() for p in nq.split("...") if p.strip()]
         pos = 0
@@ -153,8 +244,29 @@ def quote_in_excerpt(quote: str, excerpt: str) -> bool:
     return nq in ne
 
 
+def resolve_cite_span(
+    excerpt: str, paragraph: str | None
+) -> tuple[str | None, str | None, str]:
+    """
+    Return (pnum, point, text_span_to_match).
+    If paragraph omitted, span is the full excerpt.
+    """
+    if not paragraph or not str(paragraph).strip():
+        return None, None, excerpt
+    pnum, point = split_paragraph_point(str(paragraph).strip())
+    spans = parse_paragraph_spans(excerpt)
+    if not pnum or pnum not in spans:
+        return pnum, point, ""
+    body = spans[pnum]
+    if point:
+        pts = parse_point_spans(body)
+        if point not in pts:
+            return pnum, point, ""
+        return pnum, point, pts[point]
+    return pnum, point, body
+
+
 def iter_cites(data: dict[str, Any]) -> list[tuple[str, int, int, dict[str, Any]]]:
-    """Yield (location, item_index, cite_index, cite_dict)."""
     out: list[tuple[str, int, int, dict[str, Any]]] = []
     for i, c in enumerate(data.get("contracts") or []):
         if not isinstance(c, dict):
@@ -207,7 +319,6 @@ def check_provenance(
     rid = reg.get("id") if isinstance(reg.get("id"), str) else ""
     sources_dir = find_sources_dir(model_path, rid, repo_root) if rid else None
 
-    # Regulatory models: every Contract must be object with cite.article
     has_any_article = False
     for i, c in enumerate(data.get("contracts") or []):
         if isinstance(c, str):
@@ -248,7 +359,7 @@ def check_provenance(
         if ref.get("page") is not None and not (
             isinstance(edition, str) and edition.strip()
         ):
-            if not loc.startswith("contract"):  # contracts already warned
+            if not loc.startswith("contract"):
                 warnings.append(
                     f"{loc} cite[{j}]: page set but regulation.edition missing"
                 )
@@ -258,17 +369,17 @@ def check_provenance(
             "regulation: present but no cite with article on any Contract/Process"
         )
 
-    # Resolve against sources when available
     if sources_dir is None:
         if cites:
             warnings.append(
-                f"regulation {rid!r}: no sources/ directory found next to the model "
-                f"or under examples/regulations/{rid.lower()}/sources — "
-                f"cannot verify quotes or article numbers"
+                f"regulation {rid!r}: no excerpts for pin {rid!r} — cites unverified "
+                f"(add examples/regulations/{rid.lower()}/sources/ or sources/{rid.lower()}/ "
+                f"bound to this id; will not use another instrument's excerpts)"
             )
         return errors, warnings
 
     excerpt_cache: dict[str, tuple[Path | None, str | None]] = {}
+    meta_warned: set[str] = set()
 
     for loc, _i, j, ref in cites:
         art = ref.get("article")
@@ -279,33 +390,81 @@ def check_provenance(
             excerpt_cache[key] = load_article_excerpt(sources_dir, key)
         path, excerpt = excerpt_cache[key]
         if excerpt is None:
-            # Sources tree exists for this instrument — missing article is a hard fail
             errors.append(
-                f"{loc} cite[{j}]: no excerpt file for article {key!r} under {sources_dir} "
-                f"(unknown article for this pin, or add art-NN.md working excerpt)"
+                f"{loc} cite[{j}]: no excerpt file for article {key!r} under "
+                f"sources for pin {rid!r} ({sources_dir}) "
+                f"(unknown article for this pin, or add art-NN.md)"
             )
             continue
 
+        # Front-matter instrument binding
+        meta = parse_source_meta(excerpt)
+        mid = (meta.get("id") or "").strip()
+        if mid and mid.lower() != rid.lower():
+            errors.append(
+                f"{loc} cite[{j}]: excerpt {path.name} declares id={mid!r} "
+                f"but model pins regulation.id={rid!r}"
+            )
+            continue
+        if not mid and path and str(path) not in meta_warned:
+            meta_warned.add(str(path))
+            warnings.append(
+                f"sources: {path.name} has no tundra-source front-matter id= "
+                f"(add <!-- tundra-source: id={rid} --> to bind excerpt to pin)"
+            )
+
         para = ref.get("paragraph")
         para_s = str(para).strip() if para is not None else ""
+        quote = ref.get("quote")
+        has_quote = isinstance(quote, str) and quote.strip()
+
         if para_s:
-            pnum, point = split_paragraph_point(para_s)
-            paras = parse_paragraph_markers(excerpt)
-            points = parse_point_markers(excerpt)
-            if pnum and pnum.isdigit() and pnum not in paras:
+            pnum, point, span = resolve_cite_span(excerpt, para_s)
+            spans = parse_paragraph_spans(excerpt)
+            if pnum and pnum.isdigit() and pnum not in spans:
                 errors.append(
                     f"{loc} cite[{j}]: paragraph {pnum!r} not found in {path.name} "
-                    f"(known paragraphs: {', '.join(sorted(paras, key=lambda x: int(x) if x.isdigit() else 0)) or 'none'})"
+                    f"(known: {', '.join(sorted(spans, key=lambda x: int(x) if x.isdigit() else 0)) or 'none'})"
                 )
-            if point and point not in points:
-                # points may only appear under para 2; still require letter present
-                errors.append(
-                    f"{loc} cite[{j}]: point ({point}) not found in {path.name}"
-                )
+                continue
+            if point:
+                if pnum and pnum in spans:
+                    pts = parse_point_spans(spans[pnum])
+                    if point not in pts:
+                        errors.append(
+                            f"{loc} cite[{j}]: point ({point}) not found under "
+                            f"paragraph {pnum} in {path.name}"
+                        )
+                        continue
+                elif not span:
+                    errors.append(
+                        f"{loc} cite[{j}]: point ({point}) not found in {path.name}"
+                    )
+                    continue
 
-        quote = ref.get("quote")
-        if isinstance(quote, str) and quote.strip():
-            if not quote_in_excerpt(quote, excerpt):
+            if has_quote:
+                if not span:
+                    errors.append(
+                        f"{loc} cite[{j}]: cannot resolve paragraph span for "
+                        f"{para_s!r} in {path.name}"
+                    )
+                elif not quote_in_span(quote, span):
+                    # Helpful: quote might be elsewhere in the article
+                    if quote_in_span(quote, excerpt):
+                        errors.append(
+                            f"{loc} cite[{j}]: quote not found in cited paragraph "
+                            f"{para_s!r} of {path.name} (text appears elsewhere in "
+                            f"the article — possible misattribution)"
+                        )
+                    else:
+                        errors.append(
+                            f"{loc} cite[{j}]: quote not found in paragraph "
+                            f"{para_s!r} of {path.name} "
+                            f"(normalised match failed — check verbatim wording)"
+                        )
+        elif has_quote:
+            # No paragraph: match whole article only
+            if not quote_in_span(quote, excerpt):
                 errors.append(
                     f"{loc} cite[{j}]: quote not found in {path.name} "
                     f"(normalised match failed — check verbatim wording)"
@@ -329,9 +488,13 @@ def enumerate_source_coverage(sources_dir: Path) -> dict[str, dict[str, Any]]:
             art = str(int(m2.group(1)))
         else:
             art = str(int(m.group(1)))
+        spans = parse_paragraph_spans(text)
+        points: set[str] = set()
+        for body in spans.values():
+            points |= set(parse_point_spans(body).keys())
         out[art] = {
-            "paragraphs": parse_paragraph_markers(text),
-            "points": parse_point_markers(text),
+            "paragraphs": set(spans.keys()),
+            "points": points,
             "file": p.name,
         }
     return out

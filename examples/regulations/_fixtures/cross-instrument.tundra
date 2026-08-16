@@ -1,0 +1,29 @@
+# Must NOT verify against DEMO-REG / DORA sources.
+# Pin NIS2 with a quote that only exists in skill DEMO art-01 — should warn unverified,
+# not OK as verified.
+
+tundra: cross-instrument-fixture
+kind: obligations
+
+regulation:
+  id: NIS2
+  instrument: "Directive (EU) 2022/2555"
+  eli: "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+
+roles:
+  - Essential entity
+
+contracts:
+  - id: borrowed-authority
+    text: The Essential entity must maintain a documented control register.
+    cite:
+      - article: "1"
+        paragraph: "1"
+        quote: "shall maintain a documented control register for all material operational risks"
+
+scenarios:
+  - name: "Error: no register"
+    steps:
+      - Given the Essential entity is in scope
+      - When it has no control register
+      - Then the contract [borrowed-authority] is broken

@@ -6,9 +6,12 @@
 
 - **Mission:** instrument-agnostic **regulation translation system** (not hard-coded to one law)
 - **`regulation`** + **`cite`** with **quote/paragraph resolution** against `sources/`
-- **`kind: obligations`** — standing duties without invented lifecycles / genesis
+- Sources **bound to `regulation.id`** (no cross-instrument fallback); excerpt `tundra-source` front-matter
+- Quotes matched **inside the cited paragraph/point span** (misattribution errors)
+- **`kind: obligations`** — duties + scenarios only (states/processes forbidden); no genesis
 - **`--coverage`** report for article/paragraph/point vs excerpts
-- Bad-cite CI fixture; skill `example-regulation.tundra`
+- Provenance CI fixtures (bad-cite, wrong-paragraph, obligations-escape, cross-instrument); skill `example-regulation.tundra`
+- Tools refactor: `model_checks.py` phases, shared span slicing, thinner `check_tundra.py`
 - **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
 - **Sample only:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice)
 - **`models/`** reserved for user translations (no house instrument models)

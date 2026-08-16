@@ -18,12 +18,39 @@ jobs:
         run: python tools/check_tundra.py --all
       - name: Sample regulation translation present
         run: test -f examples/regulations/dora/dora-ict-risk-governance.tundra
-      - name: Bad-cite fixture must fail
+      - name: Provenance fixtures must fail
         run: |
-          if python tools/check_tundra.py examples/regulations/_fixtures/bad-cite.tundra; then
-            echo "expected bad cite to FAIL"
+          set -e
+          for f in \
+            examples/regulations/_fixtures/bad-cite.tundra \
+            examples/regulations/_fixtures/wrong-paragraph.tundra \
+            examples/regulations/_fixtures/obligations-escape.tundra
+          do
+            if python tools/check_tundra.py "$f"; then
+              echo "expected FAIL: $f"
+              exit 1
+            fi
+            echo "failed as expected: $f"
+          done
+      - name: Cross-instrument must not verify against other pins
+        run: |
+          # NIS2 must not resolve quotes via DEMO-REG skill sources
+          out=$(python tools/check_tundra.py examples/regulations/_fixtures/cross-instrument.tundra 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -qi 'unverified\|no excerpts for pin' || {
+            echo "expected unverified warning for NIS2 without sources"
             exit 1
-          fi
+          }
+          echo "$out" | grep -qi 'misattribution\|quote not found' && {
+            echo "should not attempt quote match against wrong instrument"
+            exit 1
+          }
+          # Must not claim hard error from DEMO-REG art-01 path
+          echo "$out" | grep -q 'references/sources' && {
+            echo "must not resolve NIS2 against skill DEMO sources path"
+            exit 1
+          }
+          true
       - name: Coverage report runs
         run: python tools/check_tundra.py --coverage examples/regulations/dora/
       - name: Obligations-only sample checks clean

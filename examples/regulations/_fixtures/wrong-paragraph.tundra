@@ -1,0 +1,27 @@
+# Must FAIL: quote from Art. 5(1) misattributed to paragraph 3.
+
+tundra: wrong-paragraph-fixture
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Financial entity
+
+contracts:
+  - id: misattributed
+    text: The Financial entity must have an internal ICT governance framework.
+    cite:
+      - article: "5"
+        paragraph: "3"
+        quote: "Financial entities shall have in place an internal governance and control framework"
+
+scenarios:
+  - name: "Error: misattributed cite"
+    steps:
+      - Given the Financial entity is in scope
+      - When the duty is ignored
+      - Then the contract [misattributed] is broken

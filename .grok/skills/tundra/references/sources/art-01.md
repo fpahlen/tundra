@@ -1,3 +1,4 @@
+<!-- tundra-source: id=DEMO-REG instrument="Demo Regulation (synthetic skill fixture)" -->
 # Article 1 — Demo instrument (skill fixture)
 
 **Source:** Synthetic DEMO-REG for skill examples only (not a real law).
