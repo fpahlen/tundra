@@ -35,6 +35,8 @@ contracts:
       - article: "5"
         paragraph: "1"
         quote: "internal governance and control framework that ensures an effective and prudent management of ICT risk"
+    translation_review:
+      status: unreviewed
 
   - id: mgmt-body-owns-ict-risk-framework
     text: >
@@ -44,6 +46,8 @@ contracts:
       - article: "5"
         paragraph: "2"
         quote: "define, approve, oversee and be responsible for the implementation of all arrangements related to the ICT risk management framework"
+    translation_review:
+      status: unreviewed
 
   - id: mgmt-body-ultimate-ict-risk
     text: >
@@ -53,6 +57,8 @@ contracts:
       - article: "5"
         paragraph: "2(a)"
         quote: "bear the ultimate responsibility for managing the financial entity’s ICT risk"
+    translation_review:
+      status: unreviewed
 
   - id: mgmt-body-approves-dor-strategy
     text: >
@@ -63,6 +69,8 @@ contracts:
       - article: "5"
         paragraph: "2(d)"
         quote: "setting and approving the digital operational resilience strategy"
+    translation_review:
+      status: unreviewed
 
   - id: fe-documented-ict-risk-framework
     text: >
@@ -72,6 +80,8 @@ contracts:
       - article: "6"
         paragraph: "1"
         quote: "sound, comprehensive and well-documented ICT risk management framework as part of their overall risk management system"
+    translation_review:
+      status: unreviewed
 
   - id: framework-covers-assets-and-premises
     text: >
@@ -83,6 +93,8 @@ contracts:
       - article: "6"
         paragraph: "2"
         quote: "protect all information assets and ICT assets, including computer software, hardware, servers"
+    translation_review:
+      status: unreviewed
 
   - id: control-function-independent-ict-risk
     text: >
@@ -93,7 +105,9 @@ contracts:
     cite:
       - article: "6"
         paragraph: "4"
-        quote: "assign the responsibility for managing and overseeing ICT risk to a control function"
+        quote: "Financial entities, other than microenterprises, shall assign the responsibility for managing and overseeing ICT risk to a control function"
+    translation_review:
+      status: unreviewed
 
   - id: framework-review-at-least-yearly
     text: >
@@ -106,6 +120,8 @@ contracts:
       - article: "6"
         paragraph: "5"
         quote: "documented and reviewed at least once a year, or periodically in the case of microenterprises"
+    translation_review:
+      status: unreviewed
 
   - id: framework-review-report-to-authority
     text: >
@@ -115,6 +131,8 @@ contracts:
       - article: "6"
         paragraph: "5"
         quote: "A report on the review of the ICT risk management framework shall be submitted to the competent authority upon its request"
+    translation_review:
+      status: unreviewed
 
   - id: framework-includes-dor-strategy
     text: >
@@ -126,6 +144,8 @@ contracts:
       - article: "6"
         paragraph: "8"
         quote: "The ICT risk management framework shall include a digital operational resilience strategy"
+    translation_review:
+      status: unreviewed
 
   - id: outsourcing-keeps-fe-responsible
     text: >
@@ -136,6 +156,8 @@ contracts:
       - article: "6"
         paragraph: "10"
         quote: "the financial entity remains fully responsible for the verification of compliance with the ICT risk management requirements"
+    translation_review:
+      status: unreviewed
 
 states:
   - ICT risk management framework is Draft

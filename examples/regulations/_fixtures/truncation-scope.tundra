@@ -1,0 +1,30 @@
+# Should WARN: continuous quote omits microenterprise carve-out in 5(3).
+
+tundra: truncation-scope-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Financial entity
+
+contracts:
+  - id: over-applies-to-micro
+    text: Every Financial entity must establish a role to monitor ICT third-party arrangements.
+    cite:
+      - article: "5"
+        paragraph: "3"
+        quote: "shall establish a role in order to monitor the arrangements concluded with ICT third-party service providers on the use of ICT services"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When ignored
+      - Then the contract [over-applies-to-micro] is broken

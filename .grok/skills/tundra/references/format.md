@@ -56,6 +56,10 @@ contracts:
   - <testable rule>
   - id: only-manager-creates-invoice
     text: Only the Manager may create an invoice
+    # implement_as: runtime_guard  # or recorded_control | capability | governance | …
+    # evidence:
+    #   - type: training_record
+    #     description: …
     # cite:                    # legal provenance (regulatory)
     #   - article: "5"
     #     paragraph: "2"

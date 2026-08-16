@@ -110,8 +110,96 @@ def quote_elision_issues(quote: str, span: str) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
+_SCOPE_CUES = re.compile(
+    r"("
+    r"\bother than\b|"
+    r"\bunless\b|"
+    r"\bwhere applicable\b|"
+    r"\bshall not apply\b|"
+    r"\bdoes not apply to\b|"
+    r"\bdo not apply to\b|"
+    r"\bmicroenterprises?\b|"
+    r"\bwith the exception of\b|"
+    r"\bexcept for\b|"
+    r"\bexcluding\b"
+    r")",
+    re.I,
+)
+
+_SOFT_MODAL = re.compile(
+    r"("
+    r"\bshould\b|"
+    r"\bmay consider\b|"
+    r"\bwhere practical\b|"
+    r"\bwhere possible\b|"
+    r"\bas appropriate\b|"
+    r"\bas far as possible\b|"
+    r"\bendeavour\b|"
+    r"\bendeavor\b|"
+    r"\bwhere practicable\b"
+    r")",
+    re.I,
+)
+
+
+def _sentence_window_around_quote(span: str, quote: str) -> str:
+    """
+    Prefer the sentence(s) in span that contain the quote match.
+    Avoids flagging carve-outs in other sentences of a long paragraph.
+    """
+    nq = normalise_legal(quote)
+    ne = normalise_legal(span)
+    if not nq or nq not in ne:
+        return span
+    # Map approx using original: find first 40 chars of quote in span
+    probe = re.sub(r"\s+", " ", quote.strip())[:60]
+    idx = span.lower().find(probe[:40].lower()) if len(probe) >= 20 else -1
+    if idx < 0:
+        # try first words
+        words = probe.split()[:6]
+        chunk = " ".join(words)
+        idx = span.lower().find(chunk.lower()) if chunk else -1
+    if idx < 0:
+        return span
+    # sentence bounds: . ! ? or start/end
+    start = idx
+    while start > 0 and span[start - 1] not in ".!?\n":
+        start -= 1
+    end = idx + max(len(probe), 20)
+    while end < len(span) and span[end - 1] not in ".!?\n":
+        end += 1
+    return span[start:end]
+
+
+def scope_qualifier_warnings(span: str, quote: str, paragraph_label: str) -> list[str]:
+    """Warn when the quoted sentence's span has scope carve-outs the quote omits."""
+    if not span or not quote:
+        return []
+    window = _sentence_window_around_quote(span, quote)
+    nquote = normalise_legal(quote)
+    found = []
+    for m in _SCOPE_CUES.finditer(window):
+        cue = normalise_legal(m.group(0))
+        if cue and cue not in nquote:
+            found.append(m.group(0).strip())
+    if not found:
+        return []
+    seen: set[str] = set()
+    uniq = []
+    for f in found:
+        k = f.lower()
+        if k not in seen:
+            seen.add(k)
+            uniq.append(f)
+    sample = ", ".join(repr(u) for u in uniq[:3])
+    return [
+        f"cited paragraph {paragraph_label!r} contains scope qualifier(s) "
+        f"not present in the quote ({sample}) — risk of over-application"
+    ]
+
+
 def modality_mismatch_warnings(contract_text: str, quote: str) -> list[str]:
-    """Crude shall/must vs not-required mismatch (warnings only)."""
+    """Crude shall/must vs not-required / softened mismatch (warnings only)."""
     ct = contract_text.lower()
     qt = quote.lower()
     out: list[str] = []
@@ -120,17 +208,30 @@ def modality_mismatch_warnings(contract_text: str, quote: str) -> list[str]:
     contract_not_required = bool(
         re.search(
             r"\bis not required\b|\bneed not\b|\bnot required to\b|\bmay leave\b|"
-            r"\bno obligation\b|\bneed not\b",
+            r"\bno obligation\b",
             ct,
         )
     )
     contract_must = bool(re.search(r"\bmust\b|\bshall\b", ct)) and not re.search(
         r"\bmust not\b|\bshall not\b|\bis not required\b", ct
     )
+    contract_soft = bool(_SOFT_MODAL.search(ct))
     if quote_shall and contract_not_required:
         out.append(
             "possible modality mismatch: quote uses shall/must but Contract denies the duty"
         )
+    if quote_shall and contract_soft and not contract_must:
+        out.append(
+            "possible modality mismatch: quote uses shall but Contract softens "
+            "(should / where practical / as appropriate / consider)"
+        )
+    if quote_shall and contract_soft and contract_must:
+        # "must … where practical" still softens
+        if _SOFT_MODAL.search(contract_text):
+            out.append(
+                "possible modality mismatch: quote uses shall but Contract softens "
+                "the obligation (should / where practical / as appropriate)"
+            )
     if quote_shall_not and contract_must and "not" not in ct:
         out.append(
             "possible modality mismatch: quote uses shall not but Contract reads as positive duty"
@@ -623,6 +724,14 @@ def check_provenance(
         if not has_quote:
             continue  # already errored above
 
+        spans_all = parse_paragraph_spans(excerpt)
+        if spans_all and not para_s:
+            errors.append(
+                f"{loc} cite[{j}]: paragraph is required when the article excerpt "
+                f"has numbered paragraphs (1., 2., …) — found {', '.join(sorted(spans_all, key=lambda x: int(x) if x.isdigit() else 0))}"
+            )
+            continue
+
         # Ellipsis / splice
         ee, ew = quote_elision_issues(quote, excerpt)
         for msg in ee:
@@ -678,6 +787,9 @@ def check_provenance(
                     f"{loc} cite[{j}]: ellipsis gap too large in paragraph {para_s!r} "
                     f"(possible scope splice)"
                 )
+            elif span and quote_in_span(quote, span):
+                for msg in scope_qualifier_warnings(span, quote, para_s):
+                    warnings.append(f"{loc} cite[{j}]: {msg}")
         else:
             if not quote_in_span(quote, excerpt):
                 errors.append(
@@ -729,17 +841,29 @@ def cites_from_models(model_paths: list[Path], yaml) -> list[dict[str, str]]:
             continue
         if not isinstance(data, dict):
             continue
-        for loc, _i, _j, ref in iter_cites(data):
+        # contract index for demonstration later
+        contracts = data.get("contracts") or []
+        for loc, i, _j, ref in iter_cites(data):
             art = ref.get("article")
             if not isinstance(art, str):
                 continue
             para = ref.get("paragraph")
             quote = ref.get("quote")
+            cid = ""
+            ctext = ""
+            if loc.startswith("contract[") and i < len(contracts):
+                c = contracts[i]
+                if isinstance(c, dict):
+                    cid = str(c.get("id") or "")
+                    ctext = str(c.get("text") or "")
             found.append(
                 {
                     "article": art.strip(),
                     "paragraph": str(para).strip() if para is not None else "",
                     "quote": str(quote).strip() if isinstance(quote, str) else "",
+                    "contract_id": cid,
+                    "contract_text": ctext,
+                    "model": str(path),
                     "loc": f"{path.name}:{loc}",
                 }
             )

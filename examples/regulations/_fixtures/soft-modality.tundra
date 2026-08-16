@@ -1,0 +1,33 @@
+# Should WARN: shall in quote, softened Contract wording.
+
+tundra: soft-modality-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Management body
+  - Financial entity
+
+contracts:
+  - id: softened-board-duty
+    text: >
+      The Management body should, where practical, consider defining and approving
+      arrangements related to the ICT risk management framework.
+    cite:
+      - article: "5"
+        paragraph: "2"
+        quote: "The management body of the financial entity shall define, approve, oversee and be responsible for the implementation of all arrangements related to the ICT risk management framework"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When the Management body ignores the framework
+      - Then the contract [softened-board-duty] is broken

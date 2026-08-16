@@ -82,7 +82,9 @@ When inside the Tundra methodology repo, also prefer `tundra.md`,
 
 ## Mode: validate / implement
 
-Prefer `models/**/*.tundra`. For regulation work use `example-regulation.tundra` as the few-shot shape and check provenance (`cite`, quotes vs sources, coverage). Implement faithfully; keep provenance if the stack allows.
+Prefer `models/**/*.tundra`. For regulation work use `example-regulation.tundra` as the few-shot shape and check provenance (`cite`, quotes vs sources, coverage).
+
+**Implement:** classify each Contract (`implement_as`). Emit **code + tests** for `runtime_guard` / Processes; emit a **control pack** (register, evidence, assurance probes) for `capability` / `governance` / `recorded_control`. Never fake “board understands X” unit tests — see `references/implement.md` and `examples/regulations/dora/implement/`.
 
 ## Quick examples
 

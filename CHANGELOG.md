@@ -14,7 +14,11 @@
 - Tools refactor: `model_checks.py` phases, shared span slicing, thinner `check_tundra.py`
 - Excerpt **sha256/source_url/retrieved**; `verify_sources.py`; **required quotes**; no ellipsis in quotes
 - Coverage counts **quoted** cites only; catch-all / cites-per-contract warnings
-- `translation_review` + crude modality-mismatch warnings
+- `translation_review` + modality-mismatch warnings (denial + soft shall→should)
+- Scope-qualifier omission warning; require `paragraph` when excerpts are numbered
+- **Demonstrated vs quoted** coverage; regulatory role checks use Contract mention
+- **Implement path:** `implement_as` + `evidence` on Contracts; dual assets (code vs control pack);
+  sample `examples/regulations/dora/implement/` for board-knowledge capability duty
 - **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
 - **Sample only:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice)
 - **`models/`** reserved for user translations (no house instrument models)

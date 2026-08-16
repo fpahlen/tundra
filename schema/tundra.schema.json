@@ -157,6 +157,40 @@
                     "description": "ISO date"
                   }
                 }
+              },
+              "implement_as": {
+                "type": "string",
+                "enum": [
+                  "runtime_guard",
+                  "recorded_control",
+                  "capability",
+                  "governance",
+                  "proportionality",
+                  "permission"
+                ],
+                "description": "How this Contract is primarily realized: code guard, recorded control, people/capability, board governance, applicability, or permission"
+              },
+              "evidence": {
+                "type": "array",
+                "description": "Expected evidence artefacts (esp. non-runtime controls)",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Evidence class e.g. training_record, board_minutes, policy, log_export"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "What the artefact shows for this control"
+                    }
+                  }
+                }
               }
             }
           }

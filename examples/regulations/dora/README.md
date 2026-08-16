@@ -46,3 +46,9 @@ Do **not** treat this folder as “full DORA Art. 5–6 compliance mapping.”
 ```bash
 python3 tools/check_tundra.py examples/regulations/dora/
 ```
+
+## Implement (Tundra → assets)
+
+Standing duties (e.g. Art. 5(4) board knowledge) become a **control pack**, not fake unit tests:
+
+→ [`implement/`](implement/)

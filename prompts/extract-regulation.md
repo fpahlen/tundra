@@ -33,7 +33,7 @@ A complete `.tundra` YAML document:
 1. **`regulation:`** block with `id`, `instrument`, and `eli` (or equivalent URL) when known; `edition` when pages are used  
 2. **Roles / Relationships** named as in **this** text  
 3. **Contracts** — plain English, testable; prefer `id` + `text`  
-4. Every Contract has **`cite`** with `article`, `paragraph` when present, and a **required continuous `quote`** (verbatim from that span — **no ellipsis**). The checker can only verify what you quote.  
+4. Every Contract has **`cite`** with `article`, **`paragraph` (required when the article is numbered)**, and a **required continuous `quote`** (verbatim from that span — **no ellipsis**). Include carve-outs (`other than microenterprises`, …) in the quote when the sentence has them. The checker can only verify what you quote.  
 5. Prefer **`kind: obligations`** for pure continuous duties (no `states`/`processes`). Use lifecycle only when the instrument has one. Scenarios still required (compliance/breach).  
 6. **No invented thresholds** or secondary rules not in the supplied text  
 7. Prefer **split** models; **one Contract per independently testable failure** (avoid one Contract citing many paragraphs)  

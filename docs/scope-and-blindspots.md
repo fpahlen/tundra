@@ -22,9 +22,9 @@ Tundra is excellent at one slice of good long-running software:
 | Change locality | Thin models, DRY Contracts |
 | Shared human + AI surface | Plain English + fixed structure |
 
-That is a **workflow / case-management / design-by-contract** lens. It matches much of banking and insurance *case* work (applications, approvals, four-eyes) and the Pragmatic Programmer idea that knowledge should live in one authoritative place.
+That is a **workflow / case-management / design-by-contract** lens. It also supports **regulatory translation**, where many Contracts are **standing controls** (board knowledge, documentation, oversight) that implement as **control packs and evidence**, not application `if` statements — see `tundra.md` (*How Tundra maps to implementation*).
 
-It is **not** a complete theory of good software.
+It is **not** a complete theory of good software, nor a full GRC platform.
 
 ---
 

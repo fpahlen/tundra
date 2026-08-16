@@ -36,9 +36,11 @@ from model_checks import (  # noqa: E402
     check_scenarios,
     check_state_subjects,
     check_system_not_a_role,
+    check_implement_as_hints,
     check_vagueness,
     classify_model_kind,
     collect_states,
+    demonstrated_contract_keys,
     index_contracts,
 )
 
@@ -164,7 +166,13 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
         warnings.extend(lw)
 
     warnings.extend(
-        check_role_usage(roles, pscan.actors_used, cidx.texts, is_lifecycle)
+        check_role_usage(
+            roles,
+            pscan.actors_used,
+            cidx.texts,
+            is_lifecycle,
+            regulatory=isinstance(data.get("regulation"), dict),
+        )
     )
 
     expires_states: list[str] = [
@@ -174,6 +182,7 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
     ]
     warnings.extend(check_expires_handlers(processes, expires_states))
     warnings.extend(check_vagueness(data, roles, state_names))
+    warnings.extend(check_implement_as_hints(data))
 
     pe, pw = check_provenance(data, path, ROOT)
     errors.extend(pe)
@@ -212,12 +221,23 @@ def run_coverage(target: Path, yaml) -> int:
     inventory = enumerate_source_coverage(sources_dir)
     cited = cites_from_models(model_paths, yaml)
 
+    # Per-model demonstrated contracts
+    dem_by_model: dict[str, tuple[set[str], set[str]]] = {}
+    for mp in model_paths:
+        try:
+            data = yaml.safe_load(mp.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(data, dict):
+            dem_by_model[str(mp)] = demonstrated_contract_keys(data)
+
     quoted = [c for c in cited if (c.get("quote") or "").strip()]
     bare = [c for c in cited if not (c.get("quote") or "").strip()]
 
     cited_paras: dict[str, set[str]] = {a: set() for a in inventory}
-    # points keyed by (article, paragraph) then rolled up only if valid under that para
+    dem_paras: dict[str, set[str]] = {a: set() for a in inventory}
     cited_points_valid: dict[str, set[str]] = {a: set() for a in inventory}
+    dem_points_valid: dict[str, set[str]] = {a: set() for a in inventory}
 
     excerpt_cache: dict[str, str] = {}
     for c in quoted:
@@ -225,8 +245,19 @@ def run_coverage(target: Path, yaml) -> int:
         if art.isdigit():
             art = str(int(art))
         pnum, point = split_paragraph_point(c.get("paragraph") or "")
+        dem_ids, dem_texts = dem_by_model.get(c.get("model", ""), (set(), set()))
+        is_dem = False
+        cid = c.get("contract_id") or ""
+        ctext = c.get("contract_text") or ""
+        if cid and cid in dem_ids:
+            is_dem = True
+        if ctext and ctext in dem_texts:
+            is_dem = True
+
         if pnum and pnum.isdigit():
             cited_paras.setdefault(art, set()).add(pnum)
+            if is_dem:
+                dem_paras.setdefault(art, set()).add(pnum)
         if point and pnum:
             if art not in excerpt_cache:
                 _p, text = load_article_excerpt(sources_dir, art)
@@ -234,8 +265,11 @@ def run_coverage(target: Path, yaml) -> int:
             spans = parse_paragraph_spans(excerpt_cache.get(art, ""))
             if pnum in spans and point in parse_point_spans(spans[pnum]):
                 cited_points_valid.setdefault(art, set()).add(point)
+                if is_dem:
+                    dem_points_valid.setdefault(art, set()).add(point)
 
     total_p = total_pc = total_pts = total_ptc = 0
+    total_dc = total_dpt = 0
     print(f"Coverage for {sources_dir} ({len(model_paths)} model file(s))\n")
     print(
         f"Cites: {len(quoted)} quoted / {len(bare)} bare "
@@ -246,30 +280,44 @@ def run_coverage(target: Path, yaml) -> int:
         paras = inv["paragraphs"]
         points = inv["points"]
         cp = cited_paras.get(art, set())
+        dp = dem_paras.get(art, set())
         missing_p = sorted(paras - cp, key=lambda x: int(x) if x.isdigit() else 0)
         have_p = sorted(paras & cp, key=lambda x: int(x) if x.isdigit() else 0)
+        have_d = sorted(paras & dp, key=lambda x: int(x) if x.isdigit() else 0)
         cpt = cited_points_valid.get(art, set())
+        dpt = dem_points_valid.get(art, set())
         missing_pt = sorted(points - cpt)
         have_pt = sorted(points & cpt)
+        have_dpt = sorted(points & dpt)
         total_p += len(paras)
         total_pc += len(paras & cp)
+        total_dc += len(paras & dp)
         total_pts += len(points)
         total_ptc += len(points & cpt)
+        total_dpt += len(points & dpt)
         print(f"Article {art} ({inv['file']}):")
         print(
-            f"  paragraphs: quoted-cite {', '.join(have_p) or '—'}; "
+            f"  paragraphs: quoted {', '.join(have_p) or '—'}; "
+            f"demonstrated {', '.join(have_d) or '—'}; "
             f"missing {', '.join(missing_p) or '—'}"
         )
         if points:
             print(
-                f"  points:     quoted-cite {', '.join(have_pt) or '—'}; "
-                f"missing {', '.join(missing_pt) or '—'} "
-                f"(only if cited under a paragraph that contains the point)"
+                f"  points:     quoted {', '.join(have_pt) or '—'}; "
+                f"demonstrated {', '.join(have_dpt) or '—'}; "
+                f"missing {', '.join(missing_pt) or '—'}"
             )
         print()
     print(
-        f"Quoted coverage: {total_pc}/{total_p} paragraphs, "
-        f"{total_ptc}/{total_pts} points "
+        f"Quoted coverage:       {total_pc}/{total_p} paragraphs, "
+        f"{total_ptc}/{total_pts} points"
+    )
+    print(
+        f"Demonstrated coverage: {total_dc}/{total_p} paragraphs, "
+        f"{total_dpt}/{total_pts} points "
+        f"(Scenario or enforced_by)"
+    )
+    print(
         f"({total_p} paragraphs as present in sources/, not as published)"
     )
     return 0

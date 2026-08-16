@@ -477,23 +477,81 @@ def check_role_usage(
     actors_used: set[str],
     contracts_text: list[str],
     is_lifecycle: bool,
+    *,
+    regulatory: bool = False,
 ) -> list[str]:
+    """For regulatory models, prefer Contract-mention over Process-actor (duties > workflow)."""
     warnings: list[str] = []
-    if is_lifecycle:
-        for r in roles:
-            if r not in actors_used:
-                warnings.append(
-                    f"role {r!r}: never used as a Process actor "
-                    f"(passive Role, or unused declaration)"
-                )
-    else:
+    if regulatory or not is_lifecycle:
         for r in roles:
             if not any(r.lower() in (ct or "").lower() for ct in contracts_text):
                 warnings.append(
                     f"role {r!r}: never named in any Contract "
                     f"(possible dropped duty in a regulatory translation)"
                 )
+    else:
+        for r in roles:
+            if r not in actors_used:
+                warnings.append(
+                    f"role {r!r}: never used as a Process actor "
+                    f"(passive Role, or unused declaration)"
+                )
     return warnings
+
+
+def demonstrated_contract_keys(data: dict) -> tuple[set[str], set[str]]:
+    """
+    Return (demonstrated_ids, demonstrated_exact_texts) using Scenario steps
+    and Process enforced_by (same idea as check_contract_demonstration).
+    """
+    id_set: set[str] = set()
+    text_by_id: dict[str, str] = {}
+    all_texts: set[str] = set()
+    for c in data.get("contracts") or []:
+        ct = contract_text(c)
+        cid = contract_id(c)
+        if ct:
+            all_texts.add(ct)
+        if cid and ct:
+            id_set.add(cid)
+            text_by_id[cid] = ct
+
+    quoted_texts: set[str] = set()
+    quoted_ids: set[str] = set()
+    for scen in data.get("scenarios") or []:
+        if not isinstance(scen, dict):
+            continue
+        for step in scen.get("steps") or []:
+            if not isinstance(step, str):
+                continue
+            for m in CONTRACT_QUOTE.finditer(step):
+                quoted_texts.add(m.group(1))
+            for m in CONTRACT_ID_REF.finditer(step):
+                quoted_ids.add(m.group(1))
+
+    enforced: set[str] = set()
+    for proc in data.get("processes") or []:
+        if not isinstance(proc, dict):
+            continue
+        for eid in as_list(proc.get("enforced_by")):
+            if isinstance(eid, str):
+                enforced.add(eid)
+
+    dem_ids: set[str] = set()
+    dem_texts: set[str] = set()
+    for c in data.get("contracts") or []:
+        ct = contract_text(c)
+        cid = contract_id(c)
+        if not ct:
+            continue
+        ok = ct in quoted_texts
+        if cid and (cid in quoted_ids or cid in enforced):
+            ok = True
+        if ok:
+            if cid:
+                dem_ids.add(cid)
+            dem_texts.add(ct)
+    return dem_ids, dem_texts
 
 
 def check_expires_handlers(
@@ -528,6 +586,32 @@ def check_state_subjects(state_names: list[str]) -> list[str]:
                 f'(e.g. "Hours are in Draft", not "Draft")'
             )
     return errors
+
+
+def check_implement_as_hints(data: dict) -> list[str]:
+    """Warn when implement_as: runtime_guard is not backed by any enforced_by."""
+    warnings: list[str] = []
+    enforced: set[str] = set()
+    for proc in data.get("processes") or []:
+        if not isinstance(proc, dict):
+            continue
+        for eid in as_list(proc.get("enforced_by")):
+            if isinstance(eid, str):
+                enforced.add(eid)
+    for i, c in enumerate(data.get("contracts") or []):
+        if not isinstance(c, dict):
+            continue
+        impl = c.get("implement_as")
+        if impl != "runtime_guard":
+            continue
+        cid = contract_id(c)
+        if cid and cid not in enforced:
+            warnings.append(
+                f"contract[{i}] id {cid!r}: implement_as is runtime_guard but no Process "
+                f"lists it in enforced_by (code guard has no process hook — "
+                f"or use capability/recorded_control/governance)"
+            )
+    return warnings
 
 
 def check_vagueness(

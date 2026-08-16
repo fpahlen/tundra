@@ -37,6 +37,7 @@ The **core language is instrument-agnostic**. Specific laws appear only as **sam
    ```
 
 4. Translate further articles with [`prompts/extract-regulation.md`](prompts/extract-regulation.md) — pass **any** instrument text; the prompt is not tied to one law.
+5. Implement with [`prompts/implement-tundra.md`](prompts/implement-tundra.md): **code** for process guards, **control packs** for standing duties (see [`examples/regulations/dora/implement/`](examples/regulations/dora/implement/)).
 
 ## Provenance (short)
 

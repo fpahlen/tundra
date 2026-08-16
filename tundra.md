@@ -111,8 +111,10 @@ Declaring `kind: obligations` **and** States/Processes is an error (that would s
 The checker (`tools/check_tundra.py`) verifies more than shape:
 
 - Orphan `cite` without `regulation:` → error  
-- Regulatory models: every Contract is an object with `cite.article` and **`quote` (required)**  
+- Regulatory models: every Contract is an object with `cite.article`, **`paragraph` when the excerpt is numbered**, and **`quote` (required)**  
 - Quotes must be **continuous** (no `…` / `...` — splices can drop carve-outs)  
+- **Warning** if the quoted sentence’s paragraph has a scope qualifier (`other than`, `microenterprise`, …) omitted from the quote  
+- **Warning** if a `shall` quote is softened in Contract text (`should` / `where practical` / `consider`)  
 - Sources are bound to **`regulation.id`** only (never another instrument’s excerpts)  
 - Working excerpts should declare trust front-matter, e.g.  
   `<!-- tundra-source: id=… source_url="…" retrieved="YYYY-MM-DD" sha256="…" -->`  
@@ -123,7 +125,10 @@ The checker (`tools/check_tundra.py`) verifies more than shape:
 
 **What green does *not* prove:** that the excerpt is the Official Journal, or that the Contract text is a faithful translation. Hash + review fields make drift and unreviewed text *visible*.
 
-Coverage report (quoted cites only; denominator is `sources/`, not the published instrument):
+Coverage report (denominator is `sources/`, not the published instrument):
+
+- **Quoted coverage** — paragraphs/points with a quoted cite  
+- **Demonstrated coverage** — those whose Contract is exercised in a Scenario or `enforced_by`
 
 ```bash
 python3 tools/check_tundra.py --coverage examples/regulations/<instrument>/
@@ -315,6 +320,10 @@ contracts:
     text: Only the Manager may create an invoice
     source: stated          # or inferred (AI assumption — not legal cite)
     rationale: optional why  # human context; not codegen
+    # implement_as: runtime_guard   # see “How Tundra maps to implementation”
+    # evidence:                     # for non-runtime controls
+    #   - type: board_minutes
+    #     description: …
     # cite:                 # legal provenance (regulatory models)
     #   - article: "5"
     #     paragraph: "2"
@@ -517,17 +526,77 @@ contracts:
 
 ---
 
-## How Tundra maps to code
+## How Tundra maps to implementation
+
+**Implementation is not always application code.**  
+It means: produce the assets that make each Contract real in the firm. Code is one class of asset.
+
+### Contract implementability (`implement_as`)
+
+Optional on Contract objects. Guides extract/implement without forcing every duty into a runtime `if`.
+
+| `implement_as` | Meaning | Primary assets to produce |
+| --- | --- | --- |
+| `runtime_guard` | Binary check at process time | Code guards + automated tests |
+| `recorded_control` | Do X and keep a record | Workflow / SoR + evidence type + assurance probe |
+| `capability` | Knowledge, skills, training, awareness | Evidence design + attestation (+ optional LMS plumbing) |
+| `governance` | Board approve / oversee / responsibility | Policy, calendar, minutes templates, attestations |
+| `proportionality` | Scope / carve-out (e.g. microenterprise) | Applicability matrix |
+| `permission` | May / optional | Do **not** treat breach Scenarios as mandatory failures |
+
+If omitted, implementers classify by judgment: `enforced_by` on a Process → usually `runtime_guard`; “training / knowledge / skills” → `capability`; “approve / oversee” → `governance`.
+
+### Evidence (`evidence`)
+
+Optional list on Contracts (especially `capability` / `recorded_control` / `governance`):
+
+```yaml
+evidence:
+  - type: training_record
+    description: Board ICT-risk training completions
+  - type: board_minutes
+    description: Annual note that training was completed
+```
+
+Evidence is what a supervisor could ask for. It is **not** proof that competence exists in someone’s head.
+
+### Lifecycle models → code (classic path)
 
 | Tundra | In code |
 | --- | --- |
-| Role | Actor type / enum passed into process functions |
+| Role | Actor type / enum on process functions |
 | Relationship | Ownership / association checks |
-| Contract | Fail-fast check; error message quotes the Contract text |
-| State | Enum (or equivalent) **per subject** |
-| Process | One function/method; guard with actor + requires; return results |
-| Decorator | Time / capacity / quantity fields |
-| Scenario | Executable test or demo script |
+| Contract (`runtime_guard`) | Fail-fast; message quotes Contract `text`; comment keeps `cite` |
+| State | Enum **per subject** |
+| Process | One function; guard actor + requires + `enforced_by` |
+| Scenario | Executable test |
+
+### Obligations models → control pack (regulatory standing duties)
+
+| Tundra | Asset |
+| --- | --- |
+| Contract | Control register row (id, statement, cite, owner Role) |
+| `evidence` | Expected artefacts (training log, minutes, policy, export) |
+| Scenario | **Assurance probe** (internal audit / second-line test script), not fake unit tests of “understanding” |
+| Role / Relationship | RACI / control owner |
+| `regulation` / `cite` | Legal source on every control row |
+
+**Do not invent** thresholds, LMS curricula, or “board comprehension scores” when the Contract does not state them.
+
+### Example: board ICT knowledge (DORA Art. 5(4))
+
+Contract class: **`capability`** (+ governance ownership).
+
+Produce:
+
+1. Control statement + Art. 5(4) cite  
+2. Evidence design (training register, minutes, periodic attestation)  
+3. Assurance probe from the Scenario (“no ongoing training → control fails”)  
+4. Optional software: training-record schema, reminders, export pack  
+
+Do **not** generate `assert board.understands_ict_risk()`.
+
+Worked sample: [`examples/regulations/dora/implement/`](examples/regulations/dora/implement/).
 
 ---
 

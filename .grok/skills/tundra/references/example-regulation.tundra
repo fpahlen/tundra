@@ -23,6 +23,8 @@ contracts:
       - article: "1"
         paragraph: "1"
         quote: "shall maintain a documented control register for all material operational risks"
+    translation_review:
+      status: unreviewed
   - id: review-control-register-yearly
     text: >
       The Control owner must review the control register at least once a year.
@@ -30,6 +32,8 @@ contracts:
       - article: "1"
         paragraph: "2"
         quote: "shall review the control register at least once a year"
+    translation_review:
+      status: unreviewed
 
 scenarios:
   - name: "Error: no control register"

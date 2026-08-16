@@ -1,0 +1,30 @@
+# Must FAIL: article has numbered paragraphs but cite omits paragraph.
+
+tundra: no-paragraph-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Financial entity
+  - Management body
+
+contracts:
+  - id: wrong-article-granularity
+    text: The Financial entity maintains ICT governance under Article 5(1).
+    cite:
+      - article: "5"
+        quote: "allocate and periodically review the appropriate budget to fulfil the financial entity’s digital operational resilience needs"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When ignored
+      - Then the contract [wrong-article-granularity] is broken

@@ -1,52 +1,58 @@
-# implement-tundra
+# implement-tundra (skill reference)
 
-You are a Tundra implementer.  
-Turn a `.tundra` **YAML** model into working code and scenario tests.
+Turn a `.tundra` model into **assets that realize obligations** — not always application code.
 
-Always follow `format.md` in this folder. Prefer project `tundra.md` when present.
+Prefer project `tundra.md` (*How Tundra maps to implementation*) when present.
 
 ---
 
-## Input
+## Branch on model kind
 
-- A complete YAML `.tundra` model (usually under **`models/`**)
-- Target language
-- Optional project conventions
+| `kind` | Default deliverable |
+| --- | --- |
+| `lifecycle` | Domain code + automated Scenario tests for Processes / `enforced_by` |
+| `obligations` | **Control pack** (register, evidence, assurance probes); code only for evidence plumbing |
+
+Regulatory models with both Processes and standing duties → **both**.
+
+---
+
+## Classify each Contract (`implement_as`)
+
+Use the field if set. Else:
+
+- `enforced_by` on a Process → `runtime_guard`  
+- training / knowledge / skills → `capability`  
+- approve / oversee / board responsibility → `governance`  
+- document / report / maintain register → `recorded_control`  
+- carve-outs / microenterprise → `proportionality`  
+- may / optional → `permission`  
+
+**Rule:** if you cannot assert the duty deterministically without inventing thresholds or mind-reading, do **not** emit a fake domain guard — emit control + evidence + Scenario as **assurance probe**.
 
 ---
 
 ## Produce
 
-1. **Implementation**
-   - Do not invent rules beyond the model
-   - Preserve `regulation` / `cite` in comments or structured metadata when possible
-   - Roles as actors on process functions when Processes exist
-   - `kind: obligations` → control/policy checks from Contracts + Scenarios (no fake state machine)
-   - One state representation **per subject** when States exist
-   - One function per Process; map `actor` / `requires` / `results` / `enforced_by`
-   - Contracts fail fast; messages quote Contract **text**
-   - No extra libraries unless requested
+1. Classification table  
+2. Control register rows (id, text, cite, owner Role, implement_as, evidence)  
+3. Code + unit/integration tests **only** for `runtime_guard` / Process surface  
+4. Assurance probes from Scenarios for capability/governance/recorded controls  
+5. Open questions (unspecified frequency, “commensurate”, firm policy gaps)
 
-2. **Tests / scenarios**
-   - One executable test per Scenario (happy path **and** errors)
-   - Error paths show the correct Contract broken or applied
-
-3. **Brief notes** only if useful
-
-Style references in the methodology repo: `examples/regulations/` (regulatory samples).  
-Archived process demos under `archive/legacy-process/examples/` are historical only.
+Preserve `regulation` / `cite` on every control and in code comments where relevant.
 
 ---
 
-## Rules
+## Anti-patterns
 
-1. Stay faithful — do not invent rules.  
-2. Contracts are sacred.  
-3. Legal cites are not decoration — keep them if you emit docs/tests.  
-4. If the model is invalid or too vague — stop and suggest validate first.
+- `assert board_has_knowledge()` for DORA-style training duties  
+- Inventing “every 12 months” when the Contract says “regular”  
+- Ignoring legal cites in generated assets  
+- Generating only code for a pure `kind: obligations` model  
 
 ---
 
 ## Tone
 
-Precise, practical, faithful to the source model.
+Faithful, practical, honest about people/process controls vs software.
