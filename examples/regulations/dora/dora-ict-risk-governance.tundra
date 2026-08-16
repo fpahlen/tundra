@@ -1,0 +1,224 @@
+# SAMPLE translation (not core language): DORA Articles 5–6.
+# Working excerpts: ./sources/ — Official Journal / EUR-Lex remain authoritative.
+
+tundra: dora-ict-risk-governance
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+  notes: "Article and paragraph are primary cites. Page omitted until OJ PDF mapping is pinned."
+
+roles:
+  - Financial entity
+  - Management body
+  - Control function
+  - Internal audit
+  - Competent authority
+
+relationships:
+  - Management body is Governing body of Financial entity
+  - Control function is Overseer of ICT risk
+  - Internal audit is Auditor of ICT risk management framework
+  - Competent authority is Supervisor of Financial entity
+
+contracts:
+  - id: fe-has-ict-governance-framework
+    text: >
+      The Financial entity must maintain an internal governance and control
+      framework for ICT risk that implements the ICT risk management framework.
+    cite:
+      - article: "5"
+        paragraph: "1"
+        quote: "internal governance and control framework that ensures an effective and prudent management of ICT risk"
+
+  - id: mgmt-body-owns-ict-risk-framework
+    text: >
+      The Management body must define, approve, oversee and be responsible for
+      implementing the arrangements of the ICT risk management framework.
+    cite:
+      - article: "5"
+        paragraph: "2"
+        quote: "define, approve, oversee and be responsible for the implementation of all arrangements related to the ICT risk management framework"
+
+  - id: mgmt-body-ultimate-ict-risk
+    text: >
+      The Management body bears ultimate responsibility for managing the
+      Financial entity's ICT risk.
+    cite:
+      - article: "5"
+        paragraph: "2(a)"
+        quote: "bear the ultimate responsibility for managing the financial entity’s ICT risk"
+
+  - id: mgmt-body-approves-dor-strategy
+    text: >
+      The Management body must set and approve the digital operational
+      resilience strategy, including the ICT risk tolerance level of the
+      Financial entity.
+    cite:
+      - article: "5"
+        paragraph: "2(d)"
+        quote: "setting and approving the digital operational resilience strategy"
+
+  - id: fe-documented-ict-risk-framework
+    text: >
+      The Financial entity must have a documented ICT risk management framework
+      as part of its overall risk management system.
+    cite:
+      - article: "6"
+        paragraph: "1"
+        quote: "sound, comprehensive and well-documented ICT risk management framework as part of their overall risk management system"
+
+  - id: framework-covers-assets-and-premises
+    text: >
+      The ICT risk management framework must include strategies, policies,
+      procedures, ICT protocols and tools that protect information assets and
+      ICT assets and the physical components that host them from damage and
+      unauthorised access or usage.
+    cite:
+      - article: "6"
+        paragraph: "2"
+        quote: "protect all information assets and ICT assets … from risks including damage and unauthorised access or usage"
+
+  - id: control-function-independent-ict-risk
+    text: >
+      The Financial entity (other than a microenterprise) must assign managing
+      and overseeing ICT risk to a Control function that is independent enough
+      to avoid conflicts of interest, with segregation among ICT risk management,
+      control, and Internal audit (three lines of defence or equivalent).
+    cite:
+      - article: "6"
+        paragraph: "4"
+        quote: "assign the responsibility for managing and overseeing ICT risk to a control function"
+
+  - id: framework-review-at-least-yearly
+    text: >
+      The ICT risk management framework must be documented and reviewed at least
+      once every 1 year (or periodically if the Financial entity is a
+      microenterprise), and also after major ICT-related incidents and after
+      relevant supervisory instructions, digital operational resilience testing,
+      or audit conclusions.
+    cite:
+      - article: "6"
+        paragraph: "5"
+        quote: "documented and reviewed at least once a year, or periodically in the case of microenterprises"
+
+  - id: framework-review-report-to-authority
+    text: >
+      When the Competent authority requests it, the Financial entity must submit
+      a report on the review of the ICT risk management framework.
+    cite:
+      - article: "6"
+        paragraph: "5"
+        quote: "A report on the review of the ICT risk management framework shall be submitted to the competent authority upon its request"
+
+  - id: framework-includes-dor-strategy
+    text: >
+      The ICT risk management framework must include a digital operational
+      resilience strategy that states how the framework is implemented, including
+      ICT risk tolerance, information security objectives with KPIs and key risk
+      metrics, and mechanisms to detect and protect against ICT-related incidents.
+    cite:
+      - article: "6"
+        paragraph: "8"
+        quote: "The ICT risk management framework shall include a digital operational resilience strategy"
+
+  - id: outsourcing-keeps-fe-responsible
+    text: >
+      If verification of compliance with ICT risk management requirements is
+      outsourced, the Financial entity remains fully responsible for that
+      verification.
+    cite:
+      - article: "6"
+        paragraph: "10"
+        quote: "the financial entity remains fully responsible for the verification of compliance with the ICT risk management requirements"
+
+states:
+  - ICT risk management framework is Draft
+  - ICT risk management framework is Approved
+  - name: ICT risk management framework is Under review
+  - name: ICT risk management framework is Current
+    final: true
+
+processes:
+  - name: Draft ICT risk management framework
+    actor: Financial entity
+    requires: no ICT risk management framework exists
+    results: ICT risk management framework is Draft
+    enforced_by:
+      - fe-documented-ict-risk-framework
+      - framework-covers-assets-and-premises
+      - framework-includes-dor-strategy
+    cite:
+      - article: "6"
+        paragraph: "1"
+
+  - name: Approve ICT risk management framework
+    actor: Management body
+    requires: ICT risk management framework is Draft
+    results: ICT risk management framework is Approved
+    enforced_by:
+      - mgmt-body-owns-ict-risk-framework
+      - mgmt-body-ultimate-ict-risk
+      - mgmt-body-approves-dor-strategy
+      - fe-has-ict-governance-framework
+    cite:
+      - article: "5"
+        paragraph: "2"
+
+  - name: Assign ICT risk control function
+    actor: Financial entity
+    requires: ICT risk management framework is Approved
+    results: ICT risk management framework is Current
+    enforced_by:
+      - control-function-independent-ict-risk
+    cite:
+      - article: "6"
+        paragraph: "4"
+
+  - name: Review ICT risk management framework
+    actor: Management body
+    requires: ICT risk management framework is Current
+    results: ICT risk management framework is Under review
+    enforced_by:
+      - framework-review-at-least-yearly
+    cite:
+      - article: "6"
+        paragraph: "5"
+
+  - name: Complete framework review
+    actor: Management body
+    requires: ICT risk management framework is Under review
+    results: ICT risk management framework is Current
+    enforced_by:
+      - framework-review-at-least-yearly
+      - framework-review-report-to-authority
+    cite:
+      - article: "6"
+        paragraph: "5"
+
+scenarios:
+  - name: "Happy path: framework drafted, approved, control assigned, kept current"
+    steps:
+      - Given no ICT risk management framework exists
+      - When the Financial entity drafts the ICT risk management framework
+      - Then the ICT risk management framework is Draft
+      - When the Management body approves the ICT risk management framework
+      - Then the ICT risk management framework is Approved
+      - When the Financial entity assigns the ICT risk Control function
+      - Then the ICT risk management framework is Current
+
+  - name: "Error: approve without management body ownership"
+    steps:
+      - Given the ICT risk management framework is Draft
+      - When a party other than the Management body tries to approve the ICT risk management framework
+      - Then the approval is rejected
+      - And the contract [mgmt-body-owns-ict-risk-framework] is broken
+
+  - name: "Error: outsource verification and drop accountability"
+    steps:
+      - Given the ICT risk management framework is Current
+      - When the Financial entity outsources verification of ICT risk management compliance and treats itself as not responsible
+      - Then the arrangement is non-compliant
+      - And the contract [outsourcing-keeps-fe-responsible] is broken

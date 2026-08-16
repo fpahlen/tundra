@@ -76,13 +76,15 @@ def load_deps():
 
 
 def find_models() -> list[Path]:
-    """Discover models for --all."""
+    """Discover models for --all (active corpus only; not archive/)."""
     paths: list[Path] = []
     for sub in ("models", "examples"):
         d = ROOT / sub
         if not d.is_dir():
             continue
         for p in sorted(d.rglob("*.tundra")):
+            if "archive" in p.parts:
+                continue
             # Negative fixtures (run explicitly in CI, not in --all product corpus)
             if "bad-structure" in p.parts or "bad-contracts" in p.parts:
                 continue
@@ -469,6 +471,69 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 f"contract[{i}]: names no declared Role or State "
                 f"(hard to test): {contract!r}"
             )
+
+    # --- Regulatory provenance ---
+    reg = data.get("regulation")
+    if reg is not None:
+        if not isinstance(reg, dict):
+            errors.append("regulation: must be a mapping")
+        else:
+            edition = reg.get("edition")
+            has_cite_with_article = False
+            page_without_edition = False
+            for i, c in enumerate(data.get("contracts") or []):
+                if not isinstance(c, dict):
+                    continue
+                cites = c.get("cite")
+                if not cites:
+                    continue
+                if not isinstance(cites, list):
+                    errors.append(f"contract[{i}]: cite must be a list")
+                    continue
+                for j, ref in enumerate(cites):
+                    if not isinstance(ref, dict):
+                        errors.append(f"contract[{i}] cite[{j}]: must be a mapping")
+                        continue
+                    art = ref.get("article")
+                    if isinstance(art, str) and art.strip():
+                        has_cite_with_article = True
+                    if ref.get("page") is not None and not (
+                        isinstance(edition, str) and edition.strip()
+                    ):
+                        page_without_edition = True
+            for i, proc in enumerate(data.get("processes") or []):
+                if not isinstance(proc, dict):
+                    continue
+                cites = proc.get("cite")
+                if not cites:
+                    continue
+                for j, ref in enumerate(cites if isinstance(cites, list) else []):
+                    if not isinstance(ref, dict):
+                        continue
+                    art = ref.get("article")
+                    if isinstance(art, str) and art.strip():
+                        has_cite_with_article = True
+                    if ref.get("page") is not None and not (
+                        isinstance(edition, str) and edition.strip()
+                    ):
+                        page_without_edition = True
+            if not has_cite_with_article:
+                errors.append(
+                    "regulation: present but no Contract/Process has cite with article "
+                    "(every regulatory model needs legal provenance on obligations)"
+                )
+            if page_without_edition:
+                warnings.append(
+                    "regulation: cite uses page but regulation.edition is missing "
+                    "(pages are only meaningful for a pinned OJ/PDF edition)"
+                )
+            # Prefer every object Contract to carry cite in regulatory models
+            for i, c in enumerate(data.get("contracts") or []):
+                if isinstance(c, dict) and not c.get("cite"):
+                    warnings.append(
+                        f"contract[{i}]: regulatory model Contract without cite "
+                        f"(add article/paragraph provenance)"
+                    )
 
     return errors, warnings
 

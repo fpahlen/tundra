@@ -1,9 +1,9 @@
 # Tundra format (skill reference)
 
-Plain-English models for **who may do what**, under which conditions, with living examples.
+Plain-English models for **who must / may do what**, under which conditions, with living examples — including **regulatory** reframes of any instrument with legal provenance.
 
 **Files:** suffix `.tundra`, content is **YAML**.  
-**In apps:** store under `models/*.tundra` (flat).  
+**In apps / this repo:** store under `models/*.tundra` (flat).  
 When the full Tundra repo is available, prefer `tundra.md` and `schema/tundra.schema.json` over this condensed file.
 
 ## Six concepts
@@ -36,6 +36,13 @@ Do **not** embed executable code in the model.
 ```yaml
 tundra: <short name>
 
+# Regulatory models — pin the instrument (any law):
+# regulation:
+#   id: <INSTRUMENT_SHORT_ID>
+#   instrument: "<full legal name>"
+#   eli: "<stable official URL>"
+#   edition: "<pinned edition if using page>"
+
 roles:
   - <Role name>
 
@@ -46,6 +53,9 @@ contracts:
   - <testable rule>
   - id: only-manager-creates-invoice
     text: Only the Manager may create an invoice
+    # cite:                    # legal provenance (regulatory)
+    #   - article: "5"
+    #     paragraph: "2"
 
 states:
   - <Subject is Some state>
@@ -84,19 +94,28 @@ scenarios:
 | Forbidden action | `is broken` (quote text or `[id]`) |
 | Automatic rule fires correctly | `is applied` |
 
+## Regulatory provenance
+
+| Field | Meaning |
+| --- | --- |
+| `regulation` | Model-level pin (id, instrument, eli, edition) |
+| `cite` | On Contracts/Processes: `article` + `paragraph` (primary); optional `quote` / `page` |
+| `source: inferred` | AI assumption — **not** a legal cite |
+
 ## Key rules
 
 1. Never invent important knowledge — ask instead.  
-2. Prefer thin models.  
+2. Prefer thin models (one regulatory slice per file).  
 3. Contracts must be testable.  
-4. Roles and Relationships are first-class.  
-5. Every State names its subject.  
-6. Processes declare name, actor, requires, results.  
+4. Regulatory models: every Contract should have **`cite`** with `article`.  
+5. Roles and Relationships are first-class.  
+6. Every State names its subject.  
+7. Processes declare name, actor, requires, results.  
    - `actor: System` is allowed; do **not** list `System` under `roles:`.  
    - `requires` must be a declared State or a genesis condition (`nothing` / `no X exists`).  
    - Prefer `enforced_by: [contract-id, …]` linking to Contract ids.  
-7. Scenarios demonstrate Contracts; quotes must match text, or use `[id]`.  
-8. Output valid YAML only (shape in this file / `tundra.md`).
+8. Scenarios demonstrate Contracts; quotes must match text, or use `[id]`.  
+9. Output valid YAML only (shape in this file / `tundra.md`).
 
 ## Map to code
 

@@ -2,10 +2,18 @@
 
 ## Unreleased
 
-- **Interview web app (`web/`)** — Stage 1 UI: chat, draft, auto-validate, checklist, export (demo or live LLM)
-- **Interview extract (Package 2):** diffs, checklist, `source: inferred`, split heuristic
-- Optional Contract **`source`** / **`rationale`**; ecommerce ids; **`examples/bad-contracts/`**
-- **`outcomes`**, genesis reachability, Contract ids + `enforced_by`
+### Regulatory pivot (active)
+
+- **Mission:** instrument-agnostic **regulation translation system** (not hard-coded to one law)
+- **`regulation`** + **`cite`** (article / paragraph / optional page+quote) in schema, `tundra.md`, checker
+- **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
+- **Sample only:** `examples/regulations/dora/` (Art. 5–6 translation + working excerpts)
+- **`models/`** reserved for user translations (no house instrument models)
+- **Archive:** process interview app, business examples → `archive/legacy-process/`
+
+### Earlier (archived path)
+
+- Interview web app, Package 2 extract, `source`/`rationale`, `outcomes`, genesis checks (see `archive/legacy-process/`)
 
 ## v1.5 (feature/simple-tundra-generator merged)
 

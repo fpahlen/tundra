@@ -1,53 +1,49 @@
 # Tundra
 
-A plain-English language for specifying business processes with explicit roles, relationships, testable contracts, and executable scenarios.
+A **regulation translation system**: plain-English middle language for obligations that humans and AIs can reason about. Input is typically lawyerish regulatory text from **any** applicable instrument; the same language still works for domain process models.
 
-**Tundra captures who may do what, under which conditions, and how you prove it** — so humans and AIs can share one model of the business without treating source code as the only source of truth.
+**Tundra captures who must / may do what, under which conditions, where that came from in the law (when regulatory), and how you prove it.**
 
-As AI writes more of the code, durable knowledge must live *above* the code. Tundra is that layer: thin models, explicit obligations, and living examples that become tests.
+The core language is **instrument-agnostic**. Worked translations of specific laws live under [`examples/regulations/`](examples/regulations/) as samples only.
+
+Durable knowledge should not live only in PDFs, tickets, or source code. Tundra is the shared layer: thin models, testable Contracts, living Scenarios, and **legal provenance** (`regulation` + `cite`) back to article and paragraph.
 
 Models are deliberately thin.  
-A whole system is normally made of many small models rather than one large model.
+A regulation or a system is normally many small models rather than one large model.
 
 **Files use the suffix `.tundra` and contain YAML** (pretty style: English as leaf values, light structure for Processes and Scenarios).
 
-## Examples (this repository)
+## This repository
 
-Worked demos live under [`examples/`](examples/).  
-See [`examples/README.md`](examples/README.md) for the full catalog.
-
-## Where models live in *your* project
-
-In an application, keep authoritative `.tundra` files under **`models/`**, flat by default:
-
-```text
-models/
-  hours-invoice.tundra
-  order-lifecycle.tundra
-```
-
-Do not scatter product rules under `examples/` — that folder is for demos.  
-Create `models/` if needed; one thin model per file; kebab-case names.
+| Path | What it is |
+| --- | --- |
+| [`tundra.md`](tundra.md) / [`schema/`](schema/) / [`tools/`](tools/) | **Core** — language, schema, checker (no hard-coded instrument) |
+| [`prompts/`](prompts/) | Generic extract / validate / implement |
+| [`models/`](models/) | Your translations (empty of house samples) |
+| [`examples/regulations/`](examples/regulations/) | **Samples** of translating real instruments |
+| [`archive/legacy-process/`](archive/legacy-process/) | Archived process-interview path |
 
 **Schema & check:** [`schema/tundra.schema.json`](schema/tundra.schema.json) · [`tools/check_tundra.py`](tools/check_tundra.py)
 
 ```bash
 python3 -m pip install -r requirements-dev.txt
-python3 tools/check_tundra.py --all          # this repo: examples + skill sample
-python3 tools/check_tundra.py models/        # your app
+python3 tools/check_tundra.py --all
+python3 tools/check_tundra.py models/
+python3 tools/check_tundra.py examples/regulations/
 ```
 
 ---
 
 ## Why Tundra?
 
-Most teams either bury rules in code (invisible to non-programmers) or scatter them across tickets and wikis (invisible to machines). Tundra sits in between:
+Regulations already *are* requirements — but not in a form builders and compliance can jointly challenge. Code and wikis bury or paraphrase them without a stable link to the instrument.
 
 | Audience | What they get |
 | --- | --- |
-| Humans | Plain language they can read, challenge, and change |
+| Compliance / risk | Plain English obligations with **cite** back to article/paragraph |
+| Builders | Roles, Processes, Scenarios that become controls and tests |
 | AIs | Structure disciplined enough to extract, validate, and implement without inventing rules |
-| Both | A common language for *good* software: explicit knowledge, single source of truth, design by contract |
+| Both | One map from lawyerish text → testable model → evidence |
 
 ### Not Gherkin, BPMN, or classical Design by Contract
 
@@ -58,7 +54,48 @@ Most teams either bury rules in code (invisible to non-programmers) or scatter t
 | Design by Contract in code | `requires` / `results` | Obligations lifted **above** code, editable by non-programmers |
 | Statecharts alone | Lifecycle | First-class **who may act** (Roles) and **why** (Contracts) |
 
-Tundra is for durable **domain obligations** living next to (not inside) implementation.
+Tundra is for durable **regulatory and domain obligations** living next to (not inside) implementation or the Official Journal PDF alone.
+
+### Regulatory models
+
+When a model reframes a legal instrument, pin the instrument and cite operative text.
+
+**Model-level pin** (required for regulatory models):
+
+```yaml
+regulation:
+  id: <INSTRUMENT_SHORT_ID>
+  instrument: "<full legal name of the instrument>"
+  eli: "<stable official URL>"
+  edition: "<pinned edition if using page numbers>"
+  notes: optional
+```
+
+**Element-level `cite`** (primary on Contracts; optional on Processes):
+
+```yaml
+contracts:
+  - id: example-duty
+    text: >
+      Plain-English statement of the obligation (who must or may do what).
+    cite:
+      - article: "<n>"
+        paragraph: "<n or n(a)>"
+        quote: "short verbatim snip from the operative text"
+        # page: 15   # only with regulation.edition pinned to that PDF
+```
+
+| Cite field | Role |
+| --- | --- |
+| `article` + `paragraph` | **Primary** — stable identifiers in the instrument |
+| `quote` | Optional short verbatim snip |
+| `page` | Optional; only for a pinned PDF/OJ edition |
+
+Do **not** overload `source: stated | inferred` for law: that field marks AI assumptions. Legal provenance is always **`cite`**.
+
+In a consumer project, keep working excerpts under `sources/<instrument>/` if useful (helpers only; the official publication remains authoritative).
+
+**Samples** (not core): see [`examples/regulations/`](examples/regulations/).
 
 ### Vocabulary collisions
 
@@ -215,6 +252,13 @@ Every model is a YAML document of this shape:
 ```yaml
 tundra: <short name>
 
+# Optional — required for regulatory models:
+# regulation:
+#   id: <INSTRUMENT_SHORT_ID>
+#   instrument: "<full legal name>"
+#   eli: "<stable official URL>"
+#   edition: "<pinned edition if using page>"
+
 roles:
   - <Role name>
 
@@ -231,8 +275,11 @@ contracts:
   # or with stable id (preferred for implement / enforce links):
   - id: only-manager-creates-invoice
     text: Only the Manager may create an invoice
-    source: stated          # or inferred (must confirm before export)
+    source: stated          # or inferred (AI assumption — not legal cite)
     rationale: optional why  # human context; not codegen
+    # cite:                 # legal provenance (regulatory models)
+    #   - article: "5"
+    #     paragraph: "2"
 
 states:
   - <Subject is Some state>

@@ -1,13 +1,14 @@
-# Product models
+# models/
 
-Authoritative `.tundra` files for **this product** (the simple interview website / file generator).
+Put **your** Tundra translations here (any regulation or domain slice).
 
-| File | Purpose |
+This directory is intentionally empty of house samples so the core product is not tied to one instrument.
+
+| Convention | Path |
 | --- | --- |
-| [`tundra-interview-session.tundra`](tundra-interview-session.tundra) | Session lifecycle: interview reframe → validate → export |
-
-House methodology demos stay under [`../examples/`](../examples/).  
-App consumers of Tundra also use a flat `models/` folder — same convention.
+| Your translations | `models/*.tundra` |
+| House samples (any instrument) | [`../examples/regulations/`](../examples/regulations/) |
+| Working excerpts in an app | `sources/<instrument>/` (create as needed) |
 
 ```bash
 python3 tools/check_tundra.py models/

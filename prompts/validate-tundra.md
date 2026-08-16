@@ -9,9 +9,10 @@ Examine one or more `.tundra` YAML models and report quality problems.
 
 1. **`tundra.md`** — language definition  
 2. **`schema/tundra.schema.json`** + **`tools/check_tundra.py`** — structural checks  
-3. **`examples/*/`** — methodology demos; **`bad-contracts/`** is an intentional vague-Contracts specimen  
-4. In **app projects**, product models live under **`models/`** (default validate target)  
-5. Sibling prompts: extract, implement  
+3. **`models/`** — user translations (default validate target)  
+4. **`examples/regulations/`** — house samples only (not core)  
+5. **`archive/legacy-process/examples/`** — legacy process demos only  
+6. Sibling prompts: `extract-regulation`, implement  
 
 Always follow `tundra.md`.
 
@@ -28,6 +29,12 @@ Always follow `tundra.md`.
 ### 2. Testability of Contracts (primary)
 
 - Flag vague language; every Contract must be testable
+
+### 2b. Regulatory provenance (when `regulation:` is present)
+
+- Every Contract should have `cite` with `article` (and `paragraph` when applicable)
+- `cite` is legal provenance — not the same as `source: inferred` (AI assumption)
+- Warn if `page` is used without `regulation.edition`
 
 ### 3. States name their subject
 

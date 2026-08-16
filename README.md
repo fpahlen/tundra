@@ -1,12 +1,10 @@
 # Tundra
 
-A plain-English language for specifying business processes with explicit roles, relationships, testable contracts, and executable scenarios.
+A **regulation translation system**: plain-English middle language for obligations that humans and AIs can share.
 
-**Tundra captures who may do what, under which conditions, and how you prove it** — so humans and AIs can share one model of the business without treating source code as the only source of truth.
+Lawyerish regulatory text is already “the requirements.” Tundra reframes **any** applicable instrument into Roles, Contracts, States, Processes, and Scenarios with **legal provenance** (`regulation` + `cite` → article / paragraph) so compliance and builders work from one map.
 
-As AI writes more of the code, durable knowledge must live *above* the code. Tundra is that layer: thin models, explicit obligations, and living examples that become tests.
-
-Unlike Gherkin alone, Tundra is not “examples with no model”: **Roles, Relationships, Contracts, States, and Processes** sit beside Scenarios in one file a non-programmer can challenge — then AI prompts turn that file into code and tests. See [positioning in `tundra.md`](tundra.md#not-gherkin-bpmn-or-classical-design-by-contract).
+The **core language is instrument-agnostic**. Specific laws appear only as **samples**.
 
 **Language definition:** [`tundra.md`](tundra.md)  
 **Model format:** YAML in `.tundra` files · [`schema/tundra.schema.json`](schema/tundra.schema.json)  
@@ -16,131 +14,54 @@ Unlike Gherkin alone, Tundra is not “examples with no model”: **Roles, Relat
 
 | Path | What it is |
 | --- | --- |
-| [`tundra.md`](tundra.md) | Language definition (concepts, YAML format, decorators, rules) |
-| [`schema/tundra.schema.json`](schema/tundra.schema.json) | JSON Schema for models |
-| [`tools/check_tundra.py`](tools/check_tundra.py) | Structural checker |
-| [`examples/`](examples/) | All worked models — one subfolder per example |
-| [`prompts/`](prompts/) | Standalone AI prompts: extract, validate, implement |
-| [`.grok/skills/tundra/`](.grok/skills/tundra/) | Grok Build skill (`/tundra`) |
-| [`docs/scope-and-blindspots.md`](docs/scope-and-blindspots.md) | Scope and blindspots |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version history |
+| [`tundra.md`](tundra.md) | Language definition (core) |
+| [`schema/`](schema/) | JSON Schema (core) |
+| [`tools/check_tundra.py`](tools/check_tundra.py) | Structural + provenance checker (core) |
+| [`prompts/`](prompts/) | Generic extract / validate / implement |
+| [`models/`](models/) | Your translations |
+| [`examples/regulations/`](examples/regulations/) | Sample translations of real instruments |
+| [`archive/legacy-process/`](archive/legacy-process/) | Archived process-interview path |
+| [`CHANGELOG.md`](CHANGELOG.md) | History |
 
 ## Quick start
 
-1. Read [`tundra.md`](tundra.md).
-2. Browse [`examples/README.md`](examples/README.md).
+1. Read [`tundra.md`](tundra.md) (especially **Regulatory models**).
+2. Optionally browse a sample under [`examples/regulations/`](examples/regulations/).
 3. Check models:
 
    ```bash
    python3 -m venv .venv
-   source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   source .venv/bin/activate
    python -m pip install -r requirements-dev.txt
    python tools/check_tundra.py --all
-   python examples/consultant-hours/demo.py
    ```
 
-4. In Grok Build: `/tundra interview` (or use `prompts/`).
+4. Translate further articles with [`prompts/extract-regulation.md`](prompts/extract-regulation.md) — pass **any** instrument text; the prompt is not tied to one law.
 
-## Where to put models in *your* project
+## Provenance (short)
 
-This repository keeps **demos** under [`examples/`](examples/).  
-In an application you own, put authoritative domain models under **`models/`** (flat):
+```yaml
+regulation:
+  id: <INSTRUMENT_SHORT_ID>
+  instrument: "<full legal name>"
+  eli: "<stable official URL>"
+  edition: "<pinned edition if using page>"
 
-```text
-your-app/
-  models/                         # source of truth for business rules
-    hours-invoice.tundra
-    order-lifecycle.tundra
-  src/                            # code that implements those rules
+contracts:
+  - id: example-duty
+    text: Plain-English obligation…
+    cite:
+      - article: "<n>"
+        paragraph: "<n>"
 ```
 
-- Create `models/` if it does not exist  
-- One thin model per file; kebab-case names  
-- Reuse Role and Relationship names across files in `models/`  
-- Check them with: `python3 tools/check_tundra.py models/` (if you vendor the checker)
+Article + paragraph are primary. Pages are optional and only valid for a pinned edition.
 
-Optional snippet for a consumer app’s `AGENTS.md`:
+## Adding another regulation
 
-```markdown
-## Domain rules
-- Authoritative business process rules live in `models/*.tundra` (Tundra YAML).
-- Do not invent Roles/Contracts; run /tundra extract or ask the human.
-- Prefer implementing Processes from existing `models/*.tundra` files.
-```
+1. Create `examples/regulations/<short-id>/` (sample) or put production work in your app’s `models/`.
+2. Add thin `.tundra` files with `regulation:` + `cite` — **no core code changes**.
 
-## Use with Grok Build
+## Pivot note
 
-**In your app** (default):
-
-```text
-/tundra interview
-/tundra validate models/
-/tundra implement models/hours-invoice.tundra python
-```
-
-**In this methodology repo** (house demos):
-
-```text
-/tundra validate examples/
-/tundra implement examples/consultant-hours/consultant-hours-invoice.tundra python
-```
-
-Skill path: [`.grok/skills/tundra/`](.grok/skills/tundra/).
-
-**Install user-wide** (so `/tundra` works in any project):
-
-```bash
-# from this repo root — symlink stays up to date with git pulls
-ln -sfn "$(pwd)/.grok/skills/tundra" ~/.grok/skills/tundra
-
-# or copy once (won't track updates):
-# cp -R .grok/skills/tundra ~/.grok/skills/tundra
-```
-
-Confirm the skill appears in Grok’s skill list / responds to `/tundra`.
-
-## Prompt pack
-
-```text
-Human intent  →  extract-tundra  →  .tundra model (YAML)
-                      ↓
-                validate-tundra  →  quality report
-                      ↓
-                implement-tundra →  code + scenario tests
-
-```
-
-| Prompt | Job |
-| --- | --- |
-| [`prompts/extract-tundra.md`](prompts/extract-tundra.md) | Turn messy description into a thin YAML model |
-| [`prompts/validate-tundra.md`](prompts/validate-tundra.md) | Check testability, structure, coverage |
-| [`prompts/implement-tundra.md`](prompts/implement-tundra.md) | Generate faithful code and tests |
-
-Always treat [`tundra.md`](tundra.md) as the definition of Tundra.
-
-## Interview website (Stage 1)
-
-Local web UI for the interview → validate → export loop:
-
-See [`web/README.md`](web/README.md).
-
-```bash
-cd web && python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --app-dir .
-# open http://127.0.0.1:8000
-```
-
-## House examples
-
-| Example | Purpose |
-| --- | --- |
-| [`examples/consultant-hours/`](examples/consultant-hours/) | Clean reference + Python/C demos |
-| [`examples/bad-contracts/`](examples/bad-contracts/) | **Intentional bad Contracts** fixture (vagueness) |
-| [`examples/booking-reservation/`](examples/booking-reservation/) | Temporal/capacity decorators + Elixir |
-| Other folders under `examples/` | Common web-site patterns (model only) |
-| [`models/tundra-interview-session.tundra`](models/tundra-interview-session.tundra) | Product domain model for the interview site |
-
-## License
-
-See [LICENSE](LICENSE).
+Earlier process-interview work lives under [`archive/legacy-process/`](archive/legacy-process/). Active focus is the regulation translation system.
