@@ -34,9 +34,10 @@ A complete `.tundra` YAML document:
 2. **Roles / Relationships** named as in **this** text  
 3. **Contracts** — plain English, testable; prefer `id` + `text`  
 4. Every Contract has **`cite`** with at least `article` (and `paragraph` when the text has one); optional short `quote`  
-5. Light **States / Processes / Scenarios** when the slice has a lifecycle; do not invent a fake process for pure continuous duties unless it helps builders  
+5. Use **`kind: obligations`** for pure continuous duties (no invented Draft→Approved machine). Use lifecycle Processes only when the instrument has one. Scenarios still required (compliance/breach).  
 6. **No invented thresholds** or secondary rules not in the supplied text  
-7. Prefer **split** models over one fat file  
+7. Prefer **split** models over one fat file; **one Contract per independently testable failure**  
+8. Prefer short **`quote`** snippets that appear verbatim in working excerpts so the checker can verify them
 
 ### Chat / explanation tone (if any)
 

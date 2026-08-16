@@ -18,6 +18,18 @@ jobs:
         run: python tools/check_tundra.py --all
       - name: Sample regulation translation present
         run: test -f examples/regulations/dora/dora-ict-risk-governance.tundra
+      - name: Bad-cite fixture must fail
+        run: |
+          if python tools/check_tundra.py examples/regulations/_fixtures/bad-cite.tundra; then
+            echo "expected bad cite to FAIL"
+            exit 1
+          fi
+      - name: Coverage report runs
+        run: python tools/check_tundra.py --coverage examples/regulations/dora/
+      - name: Obligations-only sample checks clean
+        run: python tools/check_tundra.py examples/regulations/dora/dora-art-5-4-board-competence.tundra
+      - name: Skill regulation example checks clean
+        run: python tools/check_tundra.py .grok/skills/tundra/references/example-regulation.tundra
       - name: Bad-structure fixture must fail (archived)
         run: |
           if python tools/check_tundra.py archive/legacy-process/examples/bad-structure/structurally-broken.tundra; then

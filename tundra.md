@@ -93,6 +93,32 @@ contracts:
 
 Do **not** overload `source: stated | inferred` for law: that field marks AI assumptions. Legal provenance is always **`cite`**.
 
+### Model kind
+
+| `kind` | Use when | States / Processes | Genesis |
+| --- | --- | --- | --- |
+| `lifecycle` (default if Processes present) | Instrument describes a subject lifecycle | Required | Required |
+| `obligations` | Standing duties with no lifecycle in the text | Optional | Not required |
+
+```yaml
+kind: obligations   # pure duties + Scenarios; no invented Draft→Approved machine
+```
+
+### Provenance enforcement
+
+The checker (`tools/check_tundra.py`) verifies more than shape:
+
+- Orphan `cite` without `regulation:` → error  
+- Regulatory models: every Contract is an object with `cite.article`  
+- When `sources/` excerpts exist for the pin: **quotes** must appear in the article file; **paragraph/point** markers must exist  
+- Missing article file under a known sources tree → error  
+
+Coverage report (does not fail the build by itself):
+
+```bash
+python3 tools/check_tundra.py --coverage examples/regulations/<instrument>/
+```
+
 In a consumer project, keep working excerpts under `sources/<instrument>/` if useful (helpers only; the official publication remains authoritative).
 
 **Samples** (not core): see [`examples/regulations/`](examples/regulations/).
@@ -412,7 +438,8 @@ scenarios:
 
 ```
 
-Full file: [`examples/consultant-hours/consultant-hours-invoice.tundra`](examples/consultant-hours/consultant-hours-invoice.tundra).
+**Regulatory sample (partial):** [`examples/regulations/dora/`](examples/regulations/dora/).  
+**Legacy process sample (archived):** [`archive/legacy-process/examples/consultant-hours/consultant-hours-invoice.tundra`](archive/legacy-process/examples/consultant-hours/consultant-hours-invoice.tundra).
 
 ---
 

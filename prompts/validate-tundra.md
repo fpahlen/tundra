@@ -32,9 +32,12 @@ Always follow `tundra.md`.
 
 ### 2b. Regulatory provenance (when `regulation:` is present)
 
-- Every Contract should have `cite` with `article` (and `paragraph` when applicable)
+- Every Contract must be object form with `cite.article` (bare strings are errors)
+- No orphan `cite` without `regulation:`
+- When `sources/` excerpts exist: quotes must match; paragraph/point must exist
 - `cite` is legal provenance — not the same as `source: inferred` (AI assumption)
-- Warn if `page` is used without `regulation.edition`
+- `kind: obligations` allows no Processes/States; lifecycle models still need genesis
+- Run `python3 tools/check_tundra.py --coverage <dir>` and report missing paragraphs
 
 ### 3. States name their subject
 

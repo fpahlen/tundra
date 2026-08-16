@@ -1,5 +1,8 @@
-# SAMPLE translation (not core language): DORA Articles 5–6.
+# SAMPLE translation (not core language): PARTIAL DORA Art. 5–6 slice.
+# Not a complete mapping of those articles — see README for coverage.
 # Working excerpts: ./sources/ — Official Journal / EUR-Lex remain authoritative.
+# Lifecycle states (Draft/Approved/…) are a modelling choice for builders, not
+# labels from the instrument; for pure standing duties see kind: obligations.
 
 tundra: dora-ict-risk-governance
 

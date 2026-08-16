@@ -36,6 +36,9 @@ Do **not** embed executable code in the model.
 ```yaml
 tundra: <short name>
 
+# kind: obligations   # standing duties; omit processes/states
+# kind: lifecycle     # default when processes present
+
 # Regulatory models — pin the instrument (any law):
 # regulation:
 #   id: <INSTRUMENT_SHORT_ID>
@@ -98,9 +101,13 @@ scenarios:
 
 | Field | Meaning |
 | --- | --- |
+| `kind` | `obligations` \| `lifecycle` |
 | `regulation` | Model-level pin (id, instrument, eli, edition) |
 | `cite` | On Contracts/Processes: `article` + `paragraph` (primary); optional `quote` / `page` |
 | `source: inferred` | AI assumption — **not** a legal cite |
+
+Checker verifies quotes/paragraphs against `sources/` excerpts when present.  
+Few-shot regulatory example: `example-regulation.tundra` + `sources/art-01.md`.
 
 ## Key rules
 

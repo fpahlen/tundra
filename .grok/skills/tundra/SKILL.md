@@ -30,7 +30,9 @@ Self-contained references:
 <skill_dir>/references/extract.md
 <skill_dir>/references/validate.md
 <skill_dir>/references/implement.md
-<skill_dir>/references/example.tundra
+<skill_dir>/references/example-regulation.tundra
+<skill_dir>/references/sources/art-01.md
+<skill_dir>/references/example.tundra          # legacy process shape
 ```
 
 When inside the Tundra methodology repo, also prefer `tundra.md`,
@@ -80,7 +82,7 @@ When inside the Tundra methodology repo, also prefer `tundra.md`,
 
 ## Mode: validate / implement
 
-Prefer `models/**/*.tundra`. Implement faithfully; keep provenance if the stack allows.
+Prefer `models/**/*.tundra`. For regulation work use `example-regulation.tundra` as the few-shot shape and check provenance (`cite`, quotes vs sources, coverage). Implement faithfully; keep provenance if the stack allows.
 
 ## Quick examples
 

@@ -1,0 +1,44 @@
+# Skill few-shot: synthetic regulatory obligations model (not a real law).
+# Working excerpt: sources/art-01.md
+
+tundra: demo-reg-control-register
+kind: obligations
+
+regulation:
+  id: DEMO-REG
+  instrument: "Demo Regulation (synthetic skill fixture)"
+  eli: "https://example.invalid/demo-reg"
+  notes: "For skill/validate demos only."
+
+roles:
+  - Regulated entity
+  - Control owner
+
+contracts:
+  - id: maintain-control-register
+    text: >
+      The Regulated entity must maintain a documented control register for all
+      material operational risks.
+    cite:
+      - article: "1"
+        paragraph: "1"
+        quote: "shall maintain a documented control register for all material operational risks"
+  - id: review-control-register-yearly
+    text: >
+      The Control owner must review the control register at least once a year.
+    cite:
+      - article: "1"
+        paragraph: "2"
+        quote: "shall review the control register at least once a year"
+
+scenarios:
+  - name: "Error: no control register"
+    steps:
+      - Given the Regulated entity is in scope
+      - When the Regulated entity has no documented control register
+      - Then the contract [maintain-control-register] is broken
+  - name: "Error: control register never reviewed"
+    steps:
+      - Given the Regulated entity maintains a control register
+      - When the Control owner skips the annual review
+      - Then the contract [review-control-register-yearly] is broken

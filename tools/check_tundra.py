@@ -15,6 +15,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "schema" / "tundra.schema.json"
+TOOLS = Path(__file__).resolve().parent
+if str(TOOLS) not in sys.path:
+    sys.path.insert(0, str(TOOLS))
 
 # Comparative / scalar language — OK if a digit appears in the same Contract
 # Prefer multi-word cues so "more detail" is not flagged; "more than 24" is OK via digit.
@@ -89,9 +92,11 @@ def find_models() -> list[Path]:
             if "bad-structure" in p.parts or "bad-contracts" in p.parts:
                 continue
             paths.append(p)
-    skill_ex = ROOT / ".grok" / "skills" / "tundra" / "references" / "example.tundra"
-    if skill_ex.is_file():
-        paths.append(skill_ex)
+    skill_refs = ROOT / ".grok" / "skills" / "tundra" / "references"
+    for name in ("example.tundra", "example-regulation.tundra"):
+        skill_ex = skill_refs / name
+        if skill_ex.is_file():
+            paths.append(skill_ex)
     seen: set[Path] = set()
     unique: list[Path] = []
     for p in paths:
@@ -382,8 +387,26 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 f"any process enforced_by: {ct!r}"
             )
 
+    processes = [p for p in (data.get("processes") or []) if isinstance(p, dict)]
+    kind = data.get("kind")
+    has_reg = isinstance(data.get("regulation"), dict)
+    is_obligations = kind == "obligations" or (has_reg and not processes)
+    is_lifecycle = not is_obligations
+
+    if is_lifecycle:
+        if not processes:
+            errors.append(
+                "lifecycle model has no processes "
+                "(add Processes, or set kind: obligations for standing duties only)"
+            )
+        if not state_names:
+            errors.append(
+                "lifecycle model has no states "
+                "(declare States, or set kind: obligations for standing duties only)"
+            )
+
     # If any contract has an id, warn ids never enforced_by any process
-    if id_set:
+    if id_set and processes:
         for cid, ct in contract_ids.items():
             if cid not in enforced_refs:
                 warnings.append(
@@ -391,68 +414,84 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                     f"({ct!r})"
                 )
 
-    # Reachability from genesis (requires list = OR of preconditions)
-    processes = [p for p in (data.get("processes") or []) if isinstance(p, dict)]
-    genesis_procs = [p for p in processes if is_genesis_process(p)]
-    if not genesis_procs:
-        errors.append(
-            "model has no genesis Process (no Process with requires like "
-            '"nothing" / "no <Subject> exists" / "<Subject> does not exist"). '
-            "Without one, no subject can come into existence."
-        )
-    reachable = compute_reachable_states(processes, state_set)
-    for name in state_names:
-        if name not in reachable:
-            warnings.append(
-                f"state {name!r}: not reachable from any genesis Process "
-                f"(unreachable lifecycle state)"
+    # Reachability from genesis — lifecycle models only
+    if is_lifecycle and processes:
+        genesis_procs = [p for p in processes if is_genesis_process(p)]
+        if not genesis_procs:
+            errors.append(
+                "model has no genesis Process (no Process with requires like "
+                '"nothing" / "no <Subject> exists" / "<Subject> does not exist"). '
+                "Without one, no subject can come into existence. "
+                "For standing duties with no lifecycle, set kind: obligations."
             )
+        reachable = compute_reachable_states(processes, state_set)
+        for name in state_names:
+            if name not in reachable:
+                warnings.append(
+                    f"state {name!r}: not reachable from any genesis Process "
+                    f"(unreachable lifecycle state)"
+                )
 
-    # Produced but never required — terminal or missing follow-up
-    final_states: set[str] = set()
-    for entry in state_objects:
-        if isinstance(entry, dict) and entry.get("final") is True:
-            n = entry.get("name")
-            if isinstance(n, str):
-                final_states.add(n)
-    for name in state_names:
-        if name in results_produced and name not in requires_consumed:
-            if name in final_states:
-                continue
-            # string form states cannot mark final — warn lightly
-            warnings.append(
-                f"state {name!r}: produced by a Process but never appears in any "
-                f"requires (terminal end-state, or missing follow-up Process; "
-                f"mark final: true on the state object if intentional)"
-            )
+        # Produced but never required — terminal or missing follow-up
+        final_states: set[str] = set()
+        for entry in state_objects:
+            if isinstance(entry, dict) and entry.get("final") is True:
+                n = entry.get("name")
+                if isinstance(n, str):
+                    final_states.add(n)
+        for name in state_names:
+            if name in results_produced and name not in requires_consumed:
+                if name in final_states:
+                    continue
+                warnings.append(
+                    f"state {name!r}: produced by a Process but never appears in any "
+                    f"requires (terminal end-state, or missing follow-up Process; "
+                    f"mark final: true on the state object if intentional)"
+                )
 
-    # Roles never used as actor (warn — passive Roles may be intentional)
-    for r in roles:
-        if r not in actors_used:
-            warnings.append(
-                f"role {r!r}: never used as a Process actor "
-                f"(passive Role, or unused declaration)"
-            )
+    # Roles never used as actor (lifecycle) or never named in a Contract (obligations)
+    if is_lifecycle:
+        for r in roles:
+            if r not in actors_used:
+                warnings.append(
+                    f"role {r!r}: never used as a Process actor "
+                    f"(passive Role, or unused declaration)"
+                )
+    else:
+        for r in roles:
+            if not any(r.lower() in (ct or "").lower() for ct in contracts_text):
+                warnings.append(
+                    f"role {r!r}: never named in any Contract "
+                    f"(possible dropped duty in a regulatory translation)"
+                )
 
     # expires_in without System process that requires that state
-    for name in expires_states:
-        has_handler = False
-        for proc in processes:
-            if proc.get("actor") != "System":
-                continue
-            reqs = _as_list(proc.get("requires"))
-            if name in reqs:
-                has_handler = True
-                break
-        if not has_handler:
-            warnings.append(
-                f"state {name!r}: has expires_in but no System Process lists it "
-                f"in requires (timer with no handler)"
-            )
+    if processes:
+        for name in expires_states:
+            has_handler = False
+            for proc in processes:
+                if proc.get("actor") != "System":
+                    continue
+                reqs = _as_list(proc.get("requires"))
+                if name in reqs:
+                    has_handler = True
+                    break
+            if not has_handler:
+                warnings.append(
+                    f"state {name!r}: has expires_in but no System Process lists it "
+                    f"in requires (timer with no handler)"
+                )
 
     # Vagueness: comparative cue without a digit; Contract with no Role/State token
-    for i, contract in enumerate(contracts_text):
-        if COMPARATIVE_CUES.search(contract) and not HAS_DIGIT.search(contract):
+    # Skip digit heuristic when Contract carries legal cite (quote is authority)
+    for i, c in enumerate(data.get("contracts") or []):
+        contract = _contract_text(c) or ""
+        has_cite = isinstance(c, dict) and bool(c.get("cite"))
+        if (
+            not has_cite
+            and COMPARATIVE_CUES.search(contract)
+            and not HAS_DIGIT.search(contract)
+        ):
             warnings.append(
                 f"contract[{i}]: comparative or vague wording without a number "
                 f'(e.g. prefer "above 40%" over "high relative to"): {contract!r}'
@@ -472,68 +511,12 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
                 f"(hard to test): {contract!r}"
             )
 
-    # --- Regulatory provenance ---
-    reg = data.get("regulation")
-    if reg is not None:
-        if not isinstance(reg, dict):
-            errors.append("regulation: must be a mapping")
-        else:
-            edition = reg.get("edition")
-            has_cite_with_article = False
-            page_without_edition = False
-            for i, c in enumerate(data.get("contracts") or []):
-                if not isinstance(c, dict):
-                    continue
-                cites = c.get("cite")
-                if not cites:
-                    continue
-                if not isinstance(cites, list):
-                    errors.append(f"contract[{i}]: cite must be a list")
-                    continue
-                for j, ref in enumerate(cites):
-                    if not isinstance(ref, dict):
-                        errors.append(f"contract[{i}] cite[{j}]: must be a mapping")
-                        continue
-                    art = ref.get("article")
-                    if isinstance(art, str) and art.strip():
-                        has_cite_with_article = True
-                    if ref.get("page") is not None and not (
-                        isinstance(edition, str) and edition.strip()
-                    ):
-                        page_without_edition = True
-            for i, proc in enumerate(data.get("processes") or []):
-                if not isinstance(proc, dict):
-                    continue
-                cites = proc.get("cite")
-                if not cites:
-                    continue
-                for j, ref in enumerate(cites if isinstance(cites, list) else []):
-                    if not isinstance(ref, dict):
-                        continue
-                    art = ref.get("article")
-                    if isinstance(art, str) and art.strip():
-                        has_cite_with_article = True
-                    if ref.get("page") is not None and not (
-                        isinstance(edition, str) and edition.strip()
-                    ):
-                        page_without_edition = True
-            if not has_cite_with_article:
-                errors.append(
-                    "regulation: present but no Contract/Process has cite with article "
-                    "(every regulatory model needs legal provenance on obligations)"
-                )
-            if page_without_edition:
-                warnings.append(
-                    "regulation: cite uses page but regulation.edition is missing "
-                    "(pages are only meaningful for a pinned OJ/PDF edition)"
-                )
-            # Prefer every object Contract to carry cite in regulatory models
-            for i, c in enumerate(data.get("contracts") or []):
-                if isinstance(c, dict) and not c.get("cite"):
-                    warnings.append(
-                        f"contract[{i}]: regulatory model Contract without cite "
-                        f"(add article/paragraph provenance)"
-                    )
+    # --- Regulatory provenance (shape + quote/article resolution) ---
+    from cite_resolve import check_provenance  # noqa: WPS433
+
+    pe, pw = check_provenance(data, path, ROOT)
+    errors.extend(pe)
+    warnings.extend(pw)
 
     return errors, warnings
 
@@ -600,6 +583,84 @@ def compute_reachable_states(processes: list[dict], state_set: set[str]) -> set[
     return reachable
 
 
+def run_coverage(target: Path, yaml) -> int:
+    """Print instrument coverage for a regulations sample directory."""
+    from cite_resolve import cites_from_models, enumerate_source_coverage
+
+    if target.is_file():
+        model_paths = [target]
+        sources_dir = target.parent / "sources"
+    else:
+        model_paths = sorted(target.rglob("*.tundra"))
+        # prefer <target>/sources or <target>/**/sources next to models
+        sources_dir = target / "sources"
+        if not sources_dir.is_dir():
+            for p in model_paths:
+                cand = p.parent / "sources"
+                if cand.is_dir():
+                    sources_dir = cand
+                    break
+
+    if not sources_dir.is_dir():
+        print(f"No sources/ under {target}", file=sys.stderr)
+        return 2
+
+    inventory = enumerate_source_coverage(sources_dir)
+    cited = cites_from_models(model_paths, yaml)
+
+    cited_paras: dict[str, set[str]] = {a: set() for a in inventory}
+    cited_points: dict[str, set[str]] = {a: set() for a in inventory}
+    for c in cited:
+        art = re.sub(r"[^\d]", "", c["article"]) or c["article"]
+        if art.isdigit():
+            art = str(int(art))
+        para = c.get("paragraph") or ""
+        m = re.match(r"^(\d+)\s*\(([a-z])\)", para, re.I)
+        if m:
+            cited_paras.setdefault(art, set()).add(m.group(1))
+            cited_points.setdefault(art, set()).add(m.group(2).lower())
+        elif re.match(r"^\d+$", para):
+            cited_paras.setdefault(art, set()).add(para)
+        elif art:
+            cited_paras.setdefault(art, set())
+
+    total_p = total_pc = total_pts = total_ptc = 0
+    print(f"Coverage for {sources_dir} ({len(model_paths)} model file(s))\n")
+    for art in sorted(inventory.keys(), key=lambda x: int(x) if x.isdigit() else x):
+        inv = inventory[art]
+        paras = inv["paragraphs"]
+        points = inv["points"]
+        cp = cited_paras.get(art, set()) & paras if paras else cited_paras.get(art, set())
+        # count paragraph hits even if parse missed
+        cp = cited_paras.get(art, set())
+        missing_p = sorted(paras - cp, key=lambda x: int(x) if x.isdigit() else 0)
+        have_p = sorted(paras & cp, key=lambda x: int(x) if x.isdigit() else 0)
+        cpt = cited_points.get(art, set())
+        missing_pt = sorted(points - cpt)
+        have_pt = sorted(points & cpt)
+        total_p += len(paras)
+        total_pc += len(paras & cp)
+        total_pts += len(points)
+        total_ptc += len(points & cpt)
+        print(f"Article {art} ({inv['file']}):")
+        print(
+            f"  paragraphs: cited {', '.join(have_p) or '—'}; "
+            f"missing {', '.join(missing_p) or '—'}"
+        )
+        if points:
+            print(
+                f"  points:     cited {', '.join(have_pt) or '—'}; "
+                f"missing {', '.join(missing_pt) or '—'}"
+            )
+        print()
+    print(
+        f"Summary: {total_pc}/{total_p} paragraphs, "
+        f"{total_ptc}/{total_pts} points cited "
+        f"(partial coverage is normal for thin slices)"
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     yaml, jsonschema = load_deps()
     parser = argparse.ArgumentParser(description="Check Tundra .tundra YAML models")
@@ -619,7 +680,18 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exit non-zero if any warnings",
     )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Report article/paragraph/point coverage vs sources/ (needs a path)",
+    )
     args = parser.parse_args(argv)
+
+    if args.coverage:
+        if not args.paths:
+            print("usage: check_tundra.py --coverage <regulations-dir-or-model>", file=sys.stderr)
+            return 2
+        return run_coverage(args.paths[0], yaml)
 
     if not SCHEMA_PATH.is_file():
         print(f"Schema not found: {SCHEMA_PATH}", file=sys.stderr)
@@ -629,11 +701,19 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.all or not args.paths:
         paths = find_models()
+        # Negative fixtures are not part of the product corpus
+        paths = [p for p in paths if "_fixtures" not in p.parts]
     else:
         paths = []
         for p in args.paths:
             if p.is_dir():
-                paths.extend(sorted(p.rglob("*.tundra")))
+                paths.extend(
+                    sorted(
+                        x
+                        for x in p.rglob("*.tundra")
+                        if "_fixtures" not in x.parts or p.name == "_fixtures"
+                    )
+                )
             else:
                 paths.append(p)
 

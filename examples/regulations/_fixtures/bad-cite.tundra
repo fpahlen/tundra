@@ -1,0 +1,29 @@
+# Negative fixture: must FAIL the checker (wrong article, invented quote, bare string).
+# Not part of the product corpus — CI asserts non-zero exit.
+
+tundra: bad-cite-fixture
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Financial entity
+
+contracts:
+  - This bare string has no cite and must error in a regulatory model
+  - id: invented-duty
+    text: The Financial entity must obey a rule that does not exist
+    cite:
+      - article: "99"
+        paragraph: "42"
+        quote: "this sentence appears nowhere in the instrument"
+
+scenarios:
+  - name: "Error: invented duty broken"
+    steps:
+      - Given the Financial entity is in scope
+      - When the Financial entity ignores the invented duty
+      - Then the contract [invented-duty] is broken

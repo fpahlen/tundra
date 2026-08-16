@@ -5,9 +5,12 @@
 ### Regulatory pivot (active)
 
 - **Mission:** instrument-agnostic **regulation translation system** (not hard-coded to one law)
-- **`regulation`** + **`cite`** (article / paragraph / optional page+quote) in schema, `tundra.md`, checker
+- **`regulation`** + **`cite`** with **quote/paragraph resolution** against `sources/`
+- **`kind: obligations`** — standing duties without invented lifecycles / genesis
+- **`--coverage`** report for article/paragraph/point vs excerpts
+- Bad-cite CI fixture; skill `example-regulation.tundra`
 - **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
-- **Sample only:** `examples/regulations/dora/` (Art. 5–6 translation + working excerpts)
+- **Sample only:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice)
 - **`models/`** reserved for user translations (no house instrument models)
 - **Archive:** process interview app, business examples → `archive/legacy-process/`
 

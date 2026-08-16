@@ -5,11 +5,13 @@ Examine one or more `.tundra` YAML models and report quality problems.
 
 Always follow `format.md` in this folder. Prefer project `tundra.md` when present.
 
-**Default targets in app projects:** `models/**/*.tundra` (flat `models/*.tundra` is the usual case).  
-User-named paths always win.
+**Default targets:** `models/**/*.tundra`. User-named paths always win.  
+House samples (if present): `examples/regulations/`.
 
-**Optional structural gate:** if `tools/check_tundra.py` and `schema/tundra.schema.json` exist in the project, you may run  
-`python3 tools/check_tundra.py <paths>` and fold failures into the report.
+**Structural gate:** when available, run  
+`python3 tools/check_tundra.py <paths>`  
+and fold failures into the report. For regulatory folders also:  
+`python3 tools/check_tundra.py --coverage <dir>`.
 
 ---
 
@@ -17,39 +19,37 @@ User-named paths always win.
 
 ### 1. YAML / structure
 
-- Valid YAML matching the shape in `format.md` (and `schema/tundra.schema.json` when available).
-- Processes have `name`, `actor`, `requires`, `results`.
-- No executable code embedded in the model.
+- Valid YAML matching `format.md` / schema.
+- `kind: obligations` → states/processes optional; scenarios required.
+- Lifecycle models → processes, states, genesis Process required.
 
 ### 2. Testability of Contracts
 
-- Flag vague language (“too high”, “reasonable”, “high relative to”, “falls between”, …).
-- Primary quality gate.
+- Flag vague language without numbers (unless Contract has legal `cite` and quote is authority).
 
-### 3. States name their subject
+### 3. Regulatory provenance (when `regulation:` present)
 
-### 4. Relationships
+- Every Contract is object form with `cite.article` (no bare strings).
+- No orphan cites without `regulation:`.
+- Quotes must match working excerpts under `sources/` when those files exist.
+- Cited paragraphs/points must exist in the excerpt.
+- Prefer stating **partial coverage** honestly; run `--coverage` when sources exist.
 
-- Declared when needed; no use of undeclared relationships.
+### 4. States name their subject (when States exist)
 
-### 5. Process actors
+### 5. Process actors (when Processes exist)
 
 - Actor is a declared Role or `System`.
 
-### 5b. Genesis and reachability
+### 5b. Genesis and reachability (lifecycle only)
 
-- Model has a genesis Process; States are reachable from genesis (not only local cycles).
+- Skip for `kind: obligations` / duties-only regulatory slices.
 
-### 6. Decorators
+### 6. Scenarios
 
-- Only known fields from `format.md`; sensible placement.
+- At least one Scenario; prefer a path where a `must` duty is **broken**.
 
-### 7. Completeness & consistency
-
-- Scenarios cover Contracts; states reachable; roles used; no contradictions.
-- Vocabulary: `is broken` vs `is applied`.
-
-### 8. Thin-model discipline
+### 7. Thin-model discipline
 
 ---
 
@@ -59,14 +59,12 @@ User-named paths always win.
 
 **Problems found** — numbered: element, why, suggestion  
 
-**Missing pieces**  
+**Coverage** — if regulatory: paragraphs/points missing vs sources  
 
-**Recommendations** — prioritized  
-
-Note: some models may be **deliberate specimens** (intentionally vague Contracts), e.g. house `loan-application` demos. Still report findings fully; note when a README marks a specimen.
+**Recommendations** — prioritised  
 
 ---
 
 ## Tone
 
-Direct, precise, constructive.
+Direct, precise, constructive. Report coverage and disagreement — not “all models green”.
