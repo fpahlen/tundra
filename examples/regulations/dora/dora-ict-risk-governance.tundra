@@ -82,7 +82,7 @@ contracts:
     cite:
       - article: "6"
         paragraph: "2"
-        quote: "protect all information assets and ICT assets … from risks including damage and unauthorised access or usage"
+        quote: "protect all information assets and ICT assets, including computer software, hardware, servers"
 
   - id: control-function-independent-ict-risk
     text: >
@@ -153,9 +153,6 @@ processes:
       - fe-documented-ict-risk-framework
       - framework-covers-assets-and-premises
       - framework-includes-dor-strategy
-    cite:
-      - article: "6"
-        paragraph: "1"
 
   - name: Approve ICT risk management framework
     actor: Management body
@@ -166,9 +163,6 @@ processes:
       - mgmt-body-ultimate-ict-risk
       - mgmt-body-approves-dor-strategy
       - fe-has-ict-governance-framework
-    cite:
-      - article: "5"
-        paragraph: "2"
 
   - name: Assign ICT risk control function
     actor: Financial entity
@@ -176,9 +170,6 @@ processes:
     results: ICT risk management framework is Current
     enforced_by:
       - control-function-independent-ict-risk
-    cite:
-      - article: "6"
-        paragraph: "4"
 
   - name: Review ICT risk management framework
     actor: Management body
@@ -186,9 +177,6 @@ processes:
     results: ICT risk management framework is Under review
     enforced_by:
       - framework-review-at-least-yearly
-    cite:
-      - article: "6"
-        paragraph: "5"
 
   - name: Complete framework review
     actor: Management body
@@ -197,9 +185,6 @@ processes:
     enforced_by:
       - framework-review-at-least-yearly
       - framework-review-report-to-authority
-    cite:
-      - article: "6"
-        paragraph: "5"
 
 scenarios:
   - name: "Happy path: framework drafted, approved, control assigned, kept current"

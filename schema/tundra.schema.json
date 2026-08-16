@@ -136,6 +136,27 @@
                     }
                   }
                 }
+              },
+              "translation_review": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Human sign-off that Contract text matches cited law (not enforced as truth)",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "unreviewed",
+                      "reviewed"
+                    ]
+                  },
+                  "reviewer": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "description": "ISO date"
+                  }
+                }
               }
             }
           }

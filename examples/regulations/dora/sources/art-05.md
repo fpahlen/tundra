@@ -1,4 +1,4 @@
-<!-- tundra-source: id=DORA instrument="Regulation (EU) 2022/2554" -->
+<!-- tundra-source: id=DORA instrument="Regulation (EU) 2022/2554" source_url="https://eur-lex.europa.eu/eli/reg/2022/2554/oj" retrieved="2026-08-16" sha256="7e22f7258d63302f25641a6b13ae52106e6ba306d7edeb614d1a2d90eda356a0" -->
 # Article 5 — Governance and organisation
 
 **Source:** Regulation (EU) 2022/2554 · ELI: <https://eur-lex.europa.eu/eli/reg/2022/2554/oj>  

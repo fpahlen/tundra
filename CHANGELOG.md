@@ -12,6 +12,9 @@
 - **`--coverage`** report for article/paragraph/point vs excerpts
 - Provenance CI fixtures (bad-cite, wrong-paragraph, obligations-escape, cross-instrument); skill `example-regulation.tundra`
 - Tools refactor: `model_checks.py` phases, shared span slicing, thinner `check_tundra.py`
+- Excerpt **sha256/source_url/retrieved**; `verify_sources.py`; **required quotes**; no ellipsis in quotes
+- Coverage counts **quoted** cites only; catch-all / cites-per-contract warnings
+- `translation_review` + crude modality-mismatch warnings
 - **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
 - **Sample only:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice)
 - **`models/`** reserved for user translations (no house instrument models)

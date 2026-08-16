@@ -111,16 +111,24 @@ Declaring `kind: obligations` **and** States/Processes is an error (that would s
 The checker (`tools/check_tundra.py`) verifies more than shape:
 
 - Orphan `cite` without `regulation:` → error  
-- Regulatory models: every Contract is an object with `cite.article`  
+- Regulatory models: every Contract is an object with `cite.article` and **`quote` (required)**  
+- Quotes must be **continuous** (no `…` / `...` — splices can drop carve-outs)  
 - Sources are bound to **`regulation.id`** only (never another instrument’s excerpts)  
-- Working excerpts should declare `<!-- tundra-source: id=… -->`  
-- When excerpts exist for the pin: **quotes** must appear in the **cited paragraph** (and point) span, not merely somewhere in the article  
-- Missing article file under that pin’s sources tree → error  
+- Working excerpts should declare trust front-matter, e.g.  
+  `<!-- tundra-source: id=… source_url="…" retrieved="YYYY-MM-DD" sha256="…" -->`  
+- When `sha256` is present, body hash must match (`tools/verify_sources.py`)  
+- When excerpts exist for the pin: **quotes** must appear in the **cited paragraph** (and point) span  
+- Crude **modality mismatch** warnings (quote *shall* vs Contract *not required*)  
+- Optional `translation_review: {status: unreviewed|reviewed}` — missing → warning (green cites ≠ human fidelity)
 
-Coverage report (does not fail the build by itself):
+**What green does *not* prove:** that the excerpt is the Official Journal, or that the Contract text is a faithful translation. Hash + review fields make drift and unreviewed text *visible*.
+
+Coverage report (quoted cites only; denominator is `sources/`, not the published instrument):
 
 ```bash
 python3 tools/check_tundra.py --coverage examples/regulations/<instrument>/
+python3 tools/verify_sources.py          # offline sha256 check
+python3 tools/verify_sources.py --write  # stamp hashes after editing excerpts
 ```
 
 In a consumer project, keep working excerpts under `sources/<instrument>/` if useful (helpers only; the official publication remains authoritative).

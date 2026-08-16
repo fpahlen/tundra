@@ -1,0 +1,30 @@
+# Must FAIL: ellipsis quote (and would drop microenterprise carve-out).
+
+tundra: ellipsis-splice-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Financial entity
+
+contracts:
+  - id: over-applies
+    text: >
+      Every Financial entity, including microenterprises, must establish a role
+      to monitor ICT third-party arrangements.
+    cite:
+      - article: "5"
+        paragraph: "3"
+        quote: "Financial entities ... shall establish a role in order to monitor the arrangements concluded with ICT third-party service providers"
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When ignored
+      - Then the contract [over-applies] is broken

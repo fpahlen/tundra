@@ -1,0 +1,32 @@
+# Must warn modality mismatch (and still OK structurally if quotes verify).
+# Contract contradicts a shall-duty quote.
+
+tundra: negated-translation-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Management body
+  - Financial entity
+
+contracts:
+  - id: board-need-not-train
+    text: The Financial entity is not required to provide ICT risk training to its board members.
+    cite:
+      - article: "5"
+        paragraph: "4"
+        quote: "Members of the management body of the financial entity shall actively keep up to date with sufficient knowledge and skills to understand and assess ICT risk"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When board members have no training
+      - Then the contract [board-need-not-train] is broken

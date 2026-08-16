@@ -183,7 +183,13 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
 
 
 def run_coverage(target: Path, yaml) -> int:
-    """Print instrument coverage for a regulations sample directory."""
+    """Print instrument coverage (quoted cites only) vs sources/ inventory."""
+    from cite_resolve import (  # local reuse
+        load_article_excerpt,
+        parse_paragraph_spans,
+        parse_point_spans,
+    )
+
     if target.is_file():
         model_paths = [target]
         sources_dir = target.parent / "sources"
@@ -206,22 +212,35 @@ def run_coverage(target: Path, yaml) -> int:
     inventory = enumerate_source_coverage(sources_dir)
     cited = cites_from_models(model_paths, yaml)
 
+    quoted = [c for c in cited if (c.get("quote") or "").strip()]
+    bare = [c for c in cited if not (c.get("quote") or "").strip()]
+
     cited_paras: dict[str, set[str]] = {a: set() for a in inventory}
-    cited_points: dict[str, set[str]] = {a: set() for a in inventory}
-    for c in cited:
+    # points keyed by (article, paragraph) then rolled up only if valid under that para
+    cited_points_valid: dict[str, set[str]] = {a: set() for a in inventory}
+
+    excerpt_cache: dict[str, str] = {}
+    for c in quoted:
         art = re.sub(r"[^\d]", "", c["article"]) or c["article"]
         if art.isdigit():
             art = str(int(art))
         pnum, point = split_paragraph_point(c.get("paragraph") or "")
         if pnum and pnum.isdigit():
             cited_paras.setdefault(art, set()).add(pnum)
-        if point:
-            cited_points.setdefault(art, set()).add(point)
-        elif art and not pnum:
-            cited_paras.setdefault(art, set())
+        if point and pnum:
+            if art not in excerpt_cache:
+                _p, text = load_article_excerpt(sources_dir, art)
+                excerpt_cache[art] = text or ""
+            spans = parse_paragraph_spans(excerpt_cache.get(art, ""))
+            if pnum in spans and point in parse_point_spans(spans[pnum]):
+                cited_points_valid.setdefault(art, set()).add(point)
 
     total_p = total_pc = total_pts = total_ptc = 0
     print(f"Coverage for {sources_dir} ({len(model_paths)} model file(s))\n")
+    print(
+        f"Cites: {len(quoted)} quoted / {len(bare)} bare "
+        f"(only quoted cites count toward coverage)\n"
+    )
     for art in sorted(inventory.keys(), key=lambda x: int(x) if x.isdigit() else x):
         inv = inventory[art]
         paras = inv["paragraphs"]
@@ -229,7 +248,7 @@ def run_coverage(target: Path, yaml) -> int:
         cp = cited_paras.get(art, set())
         missing_p = sorted(paras - cp, key=lambda x: int(x) if x.isdigit() else 0)
         have_p = sorted(paras & cp, key=lambda x: int(x) if x.isdigit() else 0)
-        cpt = cited_points.get(art, set())
+        cpt = cited_points_valid.get(art, set())
         missing_pt = sorted(points - cpt)
         have_pt = sorted(points & cpt)
         total_p += len(paras)
@@ -238,19 +257,20 @@ def run_coverage(target: Path, yaml) -> int:
         total_ptc += len(points & cpt)
         print(f"Article {art} ({inv['file']}):")
         print(
-            f"  paragraphs: cited {', '.join(have_p) or '—'}; "
+            f"  paragraphs: quoted-cite {', '.join(have_p) or '—'}; "
             f"missing {', '.join(missing_p) or '—'}"
         )
         if points:
             print(
-                f"  points:     cited {', '.join(have_pt) or '—'}; "
-                f"missing {', '.join(missing_pt) or '—'}"
+                f"  points:     quoted-cite {', '.join(have_pt) or '—'}; "
+                f"missing {', '.join(missing_pt) or '—'} "
+                f"(only if cited under a paragraph that contains the point)"
             )
         print()
     print(
-        f"Summary: {total_pc}/{total_p} paragraphs, "
-        f"{total_ptc}/{total_pts} points cited "
-        f"(partial coverage is normal for thin slices)"
+        f"Quoted coverage: {total_pc}/{total_p} paragraphs, "
+        f"{total_ptc}/{total_pts} points "
+        f"({total_p} paragraphs as present in sources/, not as published)"
     )
     return 0
 

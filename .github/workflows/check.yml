@@ -24,7 +24,9 @@ jobs:
           for f in \
             examples/regulations/_fixtures/bad-cite.tundra \
             examples/regulations/_fixtures/wrong-paragraph.tundra \
-            examples/regulations/_fixtures/obligations-escape.tundra
+            examples/regulations/_fixtures/obligations-escape.tundra \
+            examples/regulations/_fixtures/no-quote-cite.tundra \
+            examples/regulations/_fixtures/ellipsis-splice.tundra
           do
             if python tools/check_tundra.py "$f"; then
               echo "expected FAIL: $f"
@@ -32,6 +34,16 @@ jobs:
             fi
             echo "failed as expected: $f"
           done
+      - name: Negated translation warns modality mismatch
+        run: |
+          out=$(python tools/check_tundra.py examples/regulations/_fixtures/negated-translation.tundra 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -qi 'modality mismatch' || {
+            echo "expected modality mismatch warning"
+            exit 1
+          }
+      - name: Verify excerpt sha256 stamps
+        run: python tools/verify_sources.py
       - name: Cross-instrument must not verify against other pins
         run: |
           # NIS2 must not resolve quotes via DEMO-REG skill sources

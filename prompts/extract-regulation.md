@@ -33,11 +33,11 @@ A complete `.tundra` YAML document:
 1. **`regulation:`** block with `id`, `instrument`, and `eli` (or equivalent URL) when known; `edition` when pages are used  
 2. **Roles / Relationships** named as in **this** text  
 3. **Contracts** — plain English, testable; prefer `id` + `text`  
-4. Every Contract has **`cite`** with at least `article` (and `paragraph` when the text has one); optional short `quote`  
-5. Use **`kind: obligations`** for pure continuous duties (no invented Draft→Approved machine). Use lifecycle Processes only when the instrument has one. Scenarios still required (compliance/breach).  
+4. Every Contract has **`cite`** with `article`, `paragraph` when present, and a **required continuous `quote`** (verbatim from that span — **no ellipsis**). The checker can only verify what you quote.  
+5. Prefer **`kind: obligations`** for pure continuous duties (no `states`/`processes`). Use lifecycle only when the instrument has one. Scenarios still required (compliance/breach).  
 6. **No invented thresholds** or secondary rules not in the supplied text  
-7. Prefer **split** models over one fat file; **one Contract per independently testable failure**  
-8. Prefer short **`quote`** snippets that appear verbatim in working excerpts so the checker can verify them
+7. Prefer **split** models; **one Contract per independently testable failure** (avoid one Contract citing many paragraphs)  
+8. Optional `translation_review: {status: unreviewed}` until a human confirms text vs quote
 
 ### Chat / explanation tone (if any)
 
@@ -77,8 +77,10 @@ contracts:
     cite:
       - article: "<n>"
         paragraph: "<n>"
-states: […]
-processes: […]
+        quote: "continuous verbatim snippet from that paragraph"
+    translation_review:
+      status: unreviewed
+# states/processes: only for kind: lifecycle
 scenarios: […]
 ```
 

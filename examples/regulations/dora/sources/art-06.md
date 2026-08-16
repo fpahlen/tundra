@@ -1,4 +1,4 @@
-<!-- tundra-source: id=DORA instrument="Regulation (EU) 2022/2554" -->
+<!-- tundra-source: id=DORA instrument="Regulation (EU) 2022/2554" source_url="https://eur-lex.europa.eu/eli/reg/2022/2554/oj" retrieved="2026-08-16" sha256="33565a4bfc4bb641ac6c73e3e370ac31112ed82fa9e9e83eb49c88a39750975d" -->
 # Article 6 — ICT risk management framework
 
 **Source:** Regulation (EU) 2022/2554 · ELI: <https://eur-lex.europa.eu/eli/reg/2022/2554/oj>  

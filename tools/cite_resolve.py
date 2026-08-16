@@ -2,14 +2,21 @@
 
 Sources are bound to regulation.id — never silently verify against another instrument.
 Quotes are matched inside the cited paragraph (and point) span, not the whole article.
+Regulatory cites require a quote; ellipsis splices and crude modality mismatches are flagged.
 """
 
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 from pathlib import Path
 from typing import Any
+
+# Ellipsis in quotes: any use is a warning; large gaps are errors (splice risk)
+_ELLIPSIS_RE = re.compile(r"\.\.\.|…")
+_MAX_ELISION_WORDS = 12
+_MAX_ELISION_CHARS = 80
 
 
 def normalise_legal(s: str) -> str:
@@ -26,9 +33,9 @@ def normalise_legal(s: str) -> str:
 
 
 def parse_source_meta(text: str) -> dict[str, str]:
-    """Read instrument id from excerpt front-matter or HTML comment."""
+    """Read instrument id / trust fields from excerpt front-matter or HTML comment."""
     meta: dict[str, str] = {}
-    # <!-- tundra-source: id=DORA instrument="Regulation (EU) 2022/2554" -->
+    # <!-- tundra-source: id=DORA instrument="…" source_url="…" retrieved="…" sha256="…" -->
     m = re.search(r"<!--\s*tundra-source:\s*([^>]+?)-->", text, re.I)
     if m:
         blob = m.group(1)
@@ -48,6 +55,92 @@ def parse_source_meta(text: str) -> dict[str, str]:
                     k, _, v = line.partition(":")
                     meta[k.strip().lower()] = v.strip().strip("\"'")
     return meta
+
+
+def split_source_frontmatter(text: str) -> tuple[str, str]:
+    """Return (front_matter_including_trailing_ws, body)."""
+    text = text.lstrip("\ufeff")
+    m = re.match(r"(?s)^(\s*<!--\s*tundra-source:.*?-->\s*)(.*)$", text, re.I)
+    if m:
+        return m.group(1), m.group(2)
+    stripped = text.lstrip()
+    if stripped.startswith("---"):
+        parts = stripped.split("---", 2)
+        if len(parts) >= 3:
+            fm = "---" + parts[1] + "---"
+            return fm, parts[2].lstrip("\n")
+    return "", text
+
+
+def excerpt_body_for_hash(text: str) -> str:
+    """Body bytes hashed for sha256: (content after front-matter), rstrip + single newline."""
+    _, body = split_source_frontmatter(text)
+    return body.rstrip() + "\n"
+
+
+def compute_excerpt_sha256(text: str) -> str:
+    return hashlib.sha256(excerpt_body_for_hash(text).encode("utf-8")).hexdigest()
+
+
+def verify_excerpt_hash(text: str) -> tuple[bool, str | None, str]:
+    """
+    If front-matter has sha256, compare to body hash.
+    Returns (ok, declared_or_None, actual_hash).
+    ok True if no sha256 declared or match.
+    """
+    meta = parse_source_meta(text)
+    actual = compute_excerpt_sha256(text)
+    declared = (meta.get("sha256") or "").strip().lower()
+    if not declared:
+        return True, None, actual
+    return declared == actual, declared, actual
+
+
+def quote_elision_issues(quote: str, span: str) -> tuple[list[str], list[str]]:
+    """Return (errors, warnings) for ellipsis handling."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not _ELLIPSIS_RE.search(quote):
+        return errors, warnings
+    # Disallow ellipsis: splices can delete microenterprise carve-outs etc.
+    errors.append(
+        "quote must not use ellipsis (…/...); use a continuous verbatim snippet "
+        "from the cited span"
+    )
+    return errors, warnings
+
+
+def modality_mismatch_warnings(contract_text: str, quote: str) -> list[str]:
+    """Crude shall/must vs not-required mismatch (warnings only)."""
+    ct = contract_text.lower()
+    qt = quote.lower()
+    out: list[str] = []
+    quote_shall_not = bool(re.search(r"\bshall not\b|\bmust not\b", qt))
+    quote_shall = bool(re.search(r"\bshall\b", qt)) and not quote_shall_not
+    contract_not_required = bool(
+        re.search(
+            r"\bis not required\b|\bneed not\b|\bnot required to\b|\bmay leave\b|"
+            r"\bno obligation\b|\bneed not\b",
+            ct,
+        )
+    )
+    contract_must = bool(re.search(r"\bmust\b|\bshall\b", ct)) and not re.search(
+        r"\bmust not\b|\bshall not\b|\bis not required\b", ct
+    )
+    if quote_shall and contract_not_required:
+        out.append(
+            "possible modality mismatch: quote uses shall/must but Contract denies the duty"
+        )
+    if quote_shall_not and contract_must and "not" not in ct:
+        out.append(
+            "possible modality mismatch: quote uses shall not but Contract reads as positive duty"
+        )
+    if re.search(r"\bmay\b", qt) and not re.search(r"\bshall\b|\bmust\b", qt):
+        if contract_must and "remain" not in ct and "still" not in ct:
+            out.append(
+                "possible modality mismatch: quote is a permission (may) but Contract uses must"
+            )
+    return out
 
 
 def _dir_declares_instrument(sources_dir: Path, regulation_id: str) -> bool:
@@ -232,6 +325,7 @@ def quote_in_span(quote: str, span: str) -> bool:
     ne = normalise_legal(span)
     if not nq:
         return True
+    # Ellipsis normalised to ...
     if "..." in nq:
         parts = [p.strip() for p in nq.split("...") if p.strip()]
         pos = 0
@@ -242,6 +336,28 @@ def quote_in_span(quote: str, span: str) -> bool:
             pos = i + len(part)
         return True
     return nq in ne
+
+
+def elision_gap_too_large(quote: str, span: str) -> bool:
+    """True if ... fragments leave a large gap in the span (splice risk)."""
+    nq = normalise_legal(quote)
+    ne = normalise_legal(span)
+    if "..." not in nq:
+        return False
+    parts = [p.strip() for p in nq.split("...") if p.strip()]
+    if len(parts) < 2:
+        return False
+    pos = 0
+    for i, part in enumerate(parts):
+        j = ne.find(part, pos)
+        if j < 0:
+            return False
+        if i > 0:
+            gap = ne[pos:j]
+            if len(gap) > _MAX_ELISION_CHARS or len(gap.split()) > _MAX_ELISION_WORDS:
+                return True
+        pos = j + len(part)
+    return False
 
 
 def resolve_cite_span(
@@ -336,6 +452,23 @@ def check_provenance(
                 f"(need article/paragraph provenance)"
             )
             continue
+        # translation_review
+        tr = c.get("translation_review")
+        if tr is None:
+            warnings.append(
+                f"contract[{i}]: regulatory Contract has no translation_review "
+                f"(status: unreviewed|reviewed) — green cite checks are not a human fidelity sign-off"
+            )
+        elif isinstance(tr, dict):
+            st = tr.get("status")
+            if st not in ("unreviewed", "reviewed"):
+                warnings.append(
+                    f"contract[{i}]: translation_review.status should be "
+                    f"'unreviewed' or 'reviewed'"
+                )
+        else:
+            warnings.append(f"contract[{i}]: translation_review must be a mapping")
+
         for j, ref in enumerate(cites_c):
             if not isinstance(ref, dict):
                 errors.append(f"contract[{i}] cite[{j}]: must be a mapping")
@@ -345,6 +478,12 @@ def check_provenance(
                 errors.append(f"contract[{i}] cite[{j}]: article is required")
             else:
                 has_any_article = True
+            q = ref.get("quote")
+            if not (isinstance(q, str) and q.strip()):
+                errors.append(
+                    f"contract[{i}] cite[{j}]: quote is required on regulatory cites "
+                    f"(verbatim snippet from the cited paragraph)"
+                )
             if ref.get("page") is not None and not (
                 isinstance(edition, str) and edition.strip()
             ):
@@ -352,17 +491,52 @@ def check_provenance(
                     f"contract[{i}] cite[{j}]: page set but regulation.edition missing"
                 )
 
-    for loc, _i, j, ref in cites:
-        art = ref.get("article")
-        if isinstance(art, str) and art.strip():
-            has_any_article = True
-        if ref.get("page") is not None and not (
-            isinstance(edition, str) and edition.strip()
-        ):
-            if not loc.startswith("contract"):
-                warnings.append(
-                    f"{loc} cite[{j}]: page set but regulation.edition missing"
+        # Anti-gaming: too many paragraphs on one Contract
+        paras_hit: set[str] = set()
+        for ref in cites_c:
+            if not isinstance(ref, dict):
+                continue
+            p = ref.get("paragraph")
+            if p is not None and str(p).strip():
+                pnum, _ = split_paragraph_point(str(p).strip())
+                if pnum:
+                    paras_hit.add(f"{ref.get('article')}:{pnum}")
+        if len(paras_hit) > 2:
+            warnings.append(
+                f"contract[{i}]: cites {len(paras_hit)} distinct article-paragraphs "
+                f"(possible catch-all; prefer one duty per independently testable failure)"
+            )
+
+    # Process cites: require quote + article
+    for i, proc in enumerate(data.get("processes") or []):
+        if not isinstance(proc, dict):
+            continue
+        cites_p = proc.get("cite")
+        if not cites_p:
+            continue
+        if not isinstance(cites_p, list):
+            continue
+        for j, ref in enumerate(cites_p):
+            if not isinstance(ref, dict):
+                continue
+            if isinstance(ref.get("article"), str) and ref["article"].strip():
+                has_any_article = True
+            q = ref.get("quote")
+            if not (isinstance(q, str) and q.strip()):
+                errors.append(
+                    f"process[{i}] cite[{j}]: quote is required on regulatory cites"
                 )
+
+    n_contracts = sum(
+        1
+        for c in (data.get("contracts") or [])
+        if isinstance(c, (str, dict))
+    )
+    if n_contracts and len(cites) / max(n_contracts, 1) > 3:
+        warnings.append(
+            f"regulation: cites/contracts ratio is {len(cites)}/{n_contracts} "
+            f"(>3 — possible coverage padding)"
+        )
 
     if not has_any_article:
         errors.append(
@@ -380,8 +554,15 @@ def check_provenance(
 
     excerpt_cache: dict[str, tuple[Path | None, str | None]] = {}
     meta_warned: set[str] = set()
+    hash_checked: set[str] = set()
 
-    for loc, _i, j, ref in cites:
+    # Map loc -> contract text for modality checks
+    contract_texts: dict[int, str] = {}
+    for i, c in enumerate(data.get("contracts") or []):
+        if isinstance(c, dict) and isinstance(c.get("text"), str):
+            contract_texts[i] = c["text"]
+
+    for loc, i, j, ref in cites:
         art = ref.get("article")
         if not isinstance(art, str) or not art.strip():
             continue
@@ -397,7 +578,6 @@ def check_provenance(
             )
             continue
 
-        # Front-matter instrument binding
         meta = parse_source_meta(excerpt)
         mid = (meta.get("id") or "").strip()
         if mid and mid.lower() != rid.lower():
@@ -406,18 +586,51 @@ def check_provenance(
                 f"but model pins regulation.id={rid!r}"
             )
             continue
-        if not mid and path and str(path) not in meta_warned:
+        if path and str(path) not in meta_warned:
             meta_warned.add(str(path))
-            warnings.append(
-                f"sources: {path.name} has no tundra-source front-matter id= "
-                f"(add <!-- tundra-source: id={rid} --> to bind excerpt to pin)"
-            )
+            if not mid:
+                warnings.append(
+                    f"sources: {path.name} has no tundra-source front-matter id= "
+                    f"(add <!-- tundra-source: id={rid} --> to bind excerpt to pin)"
+                )
+            if not (meta.get("source_url") or "").strip():
+                warnings.append(
+                    f"sources: {path.name} missing source_url= in tundra-source front-matter"
+                )
+            if not (meta.get("retrieved") or "").strip():
+                warnings.append(
+                    f"sources: {path.name} missing retrieved= (ISO date) in front-matter"
+                )
+            if str(path) not in hash_checked:
+                hash_checked.add(str(path))
+                ok, declared, actual = verify_excerpt_hash(excerpt)
+                if declared is None:
+                    warnings.append(
+                        f"sources: {path.name} missing sha256= in front-matter "
+                        f"(run tools/verify_sources.py --write to stamp)"
+                    )
+                elif not ok:
+                    errors.append(
+                        f"sources: {path.name} sha256 mismatch "
+                        f"(declared {declared[:12]}… actual {actual[:12]}… — "
+                        f"excerpt body changed without updating hash)"
+                    )
 
         para = ref.get("paragraph")
         para_s = str(para).strip() if para is not None else ""
         quote = ref.get("quote")
         has_quote = isinstance(quote, str) and quote.strip()
+        if not has_quote:
+            continue  # already errored above
 
+        # Ellipsis / splice
+        ee, ew = quote_elision_issues(quote, excerpt)
+        for msg in ee:
+            errors.append(f"{loc} cite[{j}]: {msg}")
+        for msg in ew:
+            warnings.append(f"{loc} cite[{j}]: {msg}")
+
+        span = excerpt
         if para_s:
             pnum, point, span = resolve_cite_span(excerpt, para_s)
             spans = parse_paragraph_spans(excerpt)
@@ -442,33 +655,40 @@ def check_provenance(
                     )
                     continue
 
-            if has_quote:
-                if not span:
+            if not span:
+                errors.append(
+                    f"{loc} cite[{j}]: cannot resolve paragraph span for "
+                    f"{para_s!r} in {path.name}"
+                )
+            elif not quote_in_span(quote, span):
+                if quote_in_span(quote, excerpt):
                     errors.append(
-                        f"{loc} cite[{j}]: cannot resolve paragraph span for "
-                        f"{para_s!r} in {path.name}"
+                        f"{loc} cite[{j}]: quote not found in cited paragraph "
+                        f"{para_s!r} of {path.name} (text appears elsewhere in "
+                        f"the article — possible misattribution)"
                     )
-                elif not quote_in_span(quote, span):
-                    # Helpful: quote might be elsewhere in the article
-                    if quote_in_span(quote, excerpt):
-                        errors.append(
-                            f"{loc} cite[{j}]: quote not found in cited paragraph "
-                            f"{para_s!r} of {path.name} (text appears elsewhere in "
-                            f"the article — possible misattribution)"
-                        )
-                    else:
-                        errors.append(
-                            f"{loc} cite[{j}]: quote not found in paragraph "
-                            f"{para_s!r} of {path.name} "
-                            f"(normalised match failed — check verbatim wording)"
-                        )
-        elif has_quote:
-            # No paragraph: match whole article only
+                else:
+                    errors.append(
+                        f"{loc} cite[{j}]: quote not found in paragraph "
+                        f"{para_s!r} of {path.name} "
+                        f"(normalised match failed — check verbatim wording)"
+                    )
+            elif elision_gap_too_large(quote, span):
+                errors.append(
+                    f"{loc} cite[{j}]: ellipsis gap too large in paragraph {para_s!r} "
+                    f"(possible scope splice)"
+                )
+        else:
             if not quote_in_span(quote, excerpt):
                 errors.append(
                     f"{loc} cite[{j}]: quote not found in {path.name} "
                     f"(normalised match failed — check verbatim wording)"
                 )
+
+        # Modality heuristic (contract text vs quote)
+        if loc.startswith("contract[") and i in contract_texts:
+            for msg in modality_mismatch_warnings(contract_texts[i], quote):
+                warnings.append(f"{loc}: {msg}")
 
     return errors, warnings
 
@@ -514,10 +734,12 @@ def cites_from_models(model_paths: list[Path], yaml) -> list[dict[str, str]]:
             if not isinstance(art, str):
                 continue
             para = ref.get("paragraph")
+            quote = ref.get("quote")
             found.append(
                 {
                     "article": art.strip(),
                     "paragraph": str(para).strip() if para is not None else "",
+                    "quote": str(quote).strip() if isinstance(quote, str) else "",
                     "loc": f"{path.name}:{loc}",
                 }
             )

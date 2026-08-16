@@ -1,0 +1,26 @@
+# Must FAIL: regulatory cite without quote.
+
+tundra: no-quote-cite-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+
+roles:
+  - Financial entity
+
+contracts:
+  - id: bare-cite
+    text: The Financial entity must have an ICT governance framework.
+    cite:
+      - article: "5"
+        paragraph: "1"
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When ignored
+      - Then the contract [bare-cite] is broken
