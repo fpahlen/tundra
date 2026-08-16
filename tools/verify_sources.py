@@ -70,6 +70,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Rewrite front-matter sha256 (and retrieved) from current body",
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help="With --write: allow re-stamp when sha256 already present (shows before/after)",
+    )
+    parser.add_argument(
         "--retrieved",
         default="2026-08-16",
         help="ISO date for --write",
@@ -96,10 +101,35 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.write:
+        any_blocked = False
         for p in files:
+            text = p.read_text(encoding="utf-8")
+            meta = parse_source_meta(text)
+            old = (meta.get("sha256") or "").strip().lower()
+            if old and not args.force:
+                ok, declared, actual = verify_excerpt_hash(text)
+                if declared and ok:
+                    print(f"skip  {p} (hash already current; use --force to re-stamp)")
+                    continue
+                if declared and not ok:
+                    print(
+                        f"BLOCK {p}: body changed since stamp "
+                        f"(declared {declared[:12]}… actual {actual[:12]}…). "
+                        f"Re-run with --force to accept new body as canon "
+                        f"(this does NOT prove Official Journal fidelity)."
+                    )
+                    any_blocked = True
+                    continue
+            if old and args.force:
+                ok, declared, actual = verify_excerpt_hash(text)
+                if declared and not ok:
+                    print(
+                        f"FORCE {p}: re-stamping after drift "
+                        f"{declared[:12]}… → {actual[:12]}…"
+                    )
             stamp_frontmatter(p, retrieved=args.retrieved)
             print(f"stamped {p}")
-        return 0
+        return 1 if any_blocked else 0
 
     any_err = False
     for p in files:

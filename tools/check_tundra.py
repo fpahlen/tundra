@@ -150,7 +150,9 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
         )
     )
     warnings.extend(
-        check_enforced_by_usage(cidx.ids, pscan.enforced_refs, bool(processes))
+        check_enforced_by_usage(
+            cidx.ids, pscan.enforced_refs, bool(processes), data=data
+        )
     )
 
     if is_lifecycle and processes:
@@ -315,11 +317,26 @@ def run_coverage(target: Path, yaml) -> int:
     print(
         f"Demonstrated coverage: {total_dc}/{total_p} paragraphs, "
         f"{total_dpt}/{total_pts} points "
-        f"(Scenario or enforced_by)"
+        f"(failure Scenario 'is broken' AND evidence|enforced_by|implemented_at)"
     )
     print(
         f"({total_p} paragraphs as present in sources/, not as published)"
     )
+
+    # Surface checker warnings so coverage never travels alone (review 5)
+    if SCHEMA_PATH.is_file():
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        import jsonschema as _js
+
+        warn_n = err_n = 0
+        for mp in model_paths:
+            errs, warns = check_file(mp, schema, yaml, _js)
+            err_n += len(errs)
+            warn_n += len(warns)
+        print(
+            f"\nModel check signals on these files: {err_n} error(s), {warn_n} warning(s) "
+            f"(coverage is a drafting aid, not assurance by itself)"
+        )
     return 0
 
 

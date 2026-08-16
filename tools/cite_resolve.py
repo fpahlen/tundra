@@ -215,23 +215,23 @@ def modality_mismatch_warnings(contract_text: str, quote: str) -> list[str]:
     contract_must = bool(re.search(r"\bmust\b|\bshall\b", ct)) and not re.search(
         r"\bmust not\b|\bshall not\b|\bis not required\b", ct
     )
-    contract_soft = bool(_SOFT_MODAL.search(ct))
+    # Soft cues only count when Contract softens *beyond* what the quote already says
+    soft_in_contract = {
+        normalise_legal(m.group(0)) for m in _SOFT_MODAL.finditer(contract_text)
+    }
+    soft_in_quote = {
+        normalise_legal(m.group(0)) for m in _SOFT_MODAL.finditer(quote)
+    }
+    novel_soft = soft_in_contract - soft_in_quote
     if quote_shall and contract_not_required:
         out.append(
             "possible modality mismatch: quote uses shall/must but Contract denies the duty"
         )
-    if quote_shall and contract_soft and not contract_must:
+    if quote_shall and novel_soft:
         out.append(
             "possible modality mismatch: quote uses shall but Contract softens "
-            "(should / where practical / as appropriate / consider)"
+            "(should / where practical / as appropriate / consider) beyond the legal text"
         )
-    if quote_shall and contract_soft and contract_must:
-        # "must … where practical" still softens
-        if _SOFT_MODAL.search(contract_text):
-            out.append(
-                "possible modality mismatch: quote uses shall but Contract softens "
-                "the obligation (should / where practical / as appropriate)"
-            )
     if quote_shall_not and contract_must and "not" not in ct:
         out.append(
             "possible modality mismatch: quote uses shall not but Contract reads as positive duty"
@@ -240,6 +240,64 @@ def modality_mismatch_warnings(contract_text: str, quote: str) -> list[str]:
         if contract_must and "remain" not in ct and "still" not in ct:
             out.append(
                 "possible modality mismatch: quote is a permission (may) but Contract uses must"
+            )
+    return out
+
+
+def contract_vs_quote_scope_warnings(
+    contract_text: str,
+    quote: str,
+    applies_when: str | None = None,
+) -> list[str]:
+    """
+    When the quote restricts population (other than / microenterprise / …),
+    the Contract text must not silently widen it.
+    """
+    if not quote or not contract_text:
+        return []
+    if applies_when and str(applies_when).strip():
+        return []
+    nq = normalise_legal(quote)
+    nct = normalise_legal(contract_text)
+    cues_in_quote = []
+    for m in _SCOPE_CUES.finditer(quote):
+        cues_in_quote.append(m.group(0).strip())
+    if not cues_in_quote:
+        return []
+    def _reflected(cue: str, hay: str) -> bool:
+        c = normalise_legal(cue)
+        if c in hay:
+            return True
+        if c.endswith("s") and c[:-1] in hay:
+            return True
+        if not c.endswith("s") and (c + "s") in hay:
+            return True
+        return False
+
+    missing = [c for c in cues_in_quote if not _reflected(c, nct)]
+    # de-dupe
+    seen: set[str] = set()
+    missing_u = []
+    for c in missing:
+        k = c.lower()
+        if k not in seen:
+            seen.add(k)
+            missing_u.append(c)
+    out: list[str] = []
+    if missing_u:
+        sample = ", ".join(repr(u) for u in missing_u[:3])
+        out.append(
+            f"quote restricts scope ({sample}) but Contract text does not restrict "
+            f"similarly — risk of over-application (add carve-out to text or applies_when:)"
+        )
+    # Explicit widening
+    if re.search(r"\bother than\b", nq) and re.search(
+        r"\bincluding\b.*\bmicroenterprise", nct
+    ):
+        if "other than" not in nct:
+            out.append(
+                "quote excludes a population (other than …) but Contract text includes "
+                "microenterprises — population widened vs legal text"
             )
     return out
 
@@ -797,9 +855,21 @@ def check_provenance(
                     f"(normalised match failed — check verbatim wording)"
                 )
 
-        # Modality heuristic (contract text vs quote)
+        # Modality + Contract-vs-quote scope (translation fidelity)
         if loc.startswith("contract[") and i in contract_texts:
             for msg in modality_mismatch_warnings(contract_texts[i], quote):
+                warnings.append(f"{loc}: {msg}")
+            cobj = (data.get("contracts") or [])[i] if i < len(data.get("contracts") or []) else None
+            applies = None
+            if isinstance(cobj, dict):
+                applies = cobj.get("applies_when")
+                if isinstance(applies, str):
+                    pass
+                else:
+                    applies = None
+            for msg in contract_vs_quote_scope_warnings(
+                contract_texts[i], quote, applies_when=applies
+            ):
                 warnings.append(f"{loc}: {msg}")
 
     return errors, warnings

@@ -26,6 +26,12 @@ That is a **workflow / case-management / design-by-contract** lens. It also supp
 
 It is **not** a complete theory of good software, nor a full GRC platform.
 
+### Provenance and “green checks” (regulation path)
+
+Working excerpts under `sources/` are **human pastes** pinned with `sha256` for **accidental drift** detection. They are not a cryptographic attestation that the text is the Official Journal. Re-stamping after an edit (`verify_sources.py --write --force`) accepts a new paste as the local canon — that is a process event, not legal verification. Optional future: fetch `source_url` / ELI and diff.
+
+Coverage percentages and checker OK lines are **drafting aids**. They can be gamed by typing. Prefer metrics that require human work: failure Scenarios, `evidence:`, named `translation_review`, and eventually **disagreement yield** (practice ≠ duty).
+
 ---
 
 ## Where the shape of Tundra comes from

@@ -411,17 +411,31 @@ def check_contract_demonstration(
 
 
 def check_enforced_by_usage(
-    contract_ids: dict[str, str], enforced_refs: set[str], has_processes: bool
+    contract_ids: dict[str, str],
+    enforced_refs: set[str],
+    has_processes: bool,
+    data: dict | None = None,
 ) -> list[str]:
+    """Only nag about missing enforced_by for runtime_guard (or unset implement_as)."""
     if not has_processes or not contract_ids:
         return []
+    impl_by_id: dict[str, str | None] = {}
+    if data:
+        for c in data.get("contracts") or []:
+            if isinstance(c, dict) and isinstance(c.get("id"), str):
+                impl_by_id[c["id"]] = c.get("implement_as")
     warnings: list[str] = []
     for cid, ct in contract_ids.items():
-        if cid not in enforced_refs:
-            warnings.append(
-                f"contract id {cid!r}: never listed in any Process enforced_by "
-                f"({ct!r})"
-            )
+        if cid in enforced_refs:
+            continue
+        impl = impl_by_id.get(cid)
+        # Non-runtime classes are not expected on Process enforced_by
+        if impl in _NON_RUNTIME or impl in ("proportionality", "permission"):
+            continue
+        warnings.append(
+            f"contract id {cid!r}: never listed in any Process enforced_by "
+            f"({ct!r})"
+        )
     return warnings
 
 
@@ -501,33 +515,30 @@ def check_role_usage(
 
 def demonstrated_contract_keys(data: dict) -> tuple[set[str], set[str]]:
     """
-    Return (demonstrated_ids, demonstrated_exact_texts) using Scenario steps
-    and Process enforced_by (same idea as check_contract_demonstration).
-    """
-    id_set: set[str] = set()
-    text_by_id: dict[str, str] = {}
-    all_texts: set[str] = set()
-    for c in data.get("contracts") or []:
-        ct = contract_text(c)
-        cid = contract_id(c)
-        if ct:
-            all_texts.add(ct)
-        if cid and ct:
-            id_set.add(cid)
-            text_by_id[cid] = ct
+    Stricter "assurance demonstrated" bar (review 5):
 
-    quoted_texts: set[str] = set()
-    quoted_ids: set[str] = set()
+    A Contract counts as demonstrated only if:
+    1. A Scenario has a **failure** step for it (`is broken`), AND
+    2. It has `evidence:` OR appears in some Process `enforced_by` OR has `implemented_at:`.
+
+    Mere Scenario mention of the id without a break step is not enough (that made
+    demonstrated == quoted by construction).
+    """
+    broken_texts: set[str] = set()
+    broken_ids: set[str] = set()
     for scen in data.get("scenarios") or []:
         if not isinstance(scen, dict):
             continue
         for step in scen.get("steps") or []:
             if not isinstance(step, str):
                 continue
+            low = step.lower()
+            if "is broken" not in low:
+                continue
             for m in CONTRACT_QUOTE.finditer(step):
-                quoted_texts.add(m.group(1))
+                broken_texts.add(m.group(1))
             for m in CONTRACT_ID_REF.finditer(step):
-                quoted_ids.add(m.group(1))
+                broken_ids.add(m.group(1))
 
     enforced: set[str] = set()
     for proc in data.get("processes") or []:
@@ -540,14 +551,25 @@ def demonstrated_contract_keys(data: dict) -> tuple[set[str], set[str]]:
     dem_ids: set[str] = set()
     dem_texts: set[str] = set()
     for c in data.get("contracts") or []:
+        if not isinstance(c, dict):
+            # bare string contracts cannot carry evidence/implemented_at
+            ct = contract_text(c)
+            if ct and ct in broken_texts:
+                # still need evidence/enforced — bare string has neither → not demonstrated
+                pass
+            continue
         ct = contract_text(c)
         cid = contract_id(c)
         if not ct:
             continue
-        ok = ct in quoted_texts
-        if cid and (cid in quoted_ids or cid in enforced):
-            ok = True
-        if ok:
+        has_break = ct in broken_texts or (cid is not None and cid in broken_ids)
+        has_evidence = bool(c.get("evidence"))
+        has_enforced = bool(cid and cid in enforced)
+        has_impl_at = bool(
+            isinstance(c.get("implemented_at"), str) and c.get("implemented_at", "").strip()
+        )
+        has_hook = has_evidence or has_enforced or has_impl_at
+        if has_break and has_hook:
             if cid:
                 dem_ids.add(cid)
             dem_texts.add(ct)
@@ -588,9 +610,19 @@ def check_state_subjects(state_names: list[str]) -> list[str]:
     return errors
 
 
+_NON_RUNTIME = frozenset(
+    {"recorded_control", "capability", "governance"}
+)
+
+
 def check_implement_as_hints(data: dict) -> list[str]:
-    """Warn when implement_as: runtime_guard is not backed by any enforced_by."""
+    """
+    - runtime_guard needs enforced_by OR implemented_at (esp. under kind: obligations)
+    - non-runtime classes need evidence:
+    - warn translation_review: unreviewed
+    """
     warnings: list[str] = []
+    kind = data.get("kind")
     enforced: set[str] = set()
     for proc in data.get("processes") or []:
         if not isinstance(proc, dict):
@@ -598,18 +630,49 @@ def check_implement_as_hints(data: dict) -> list[str]:
         for eid in as_list(proc.get("enforced_by")):
             if isinstance(eid, str):
                 enforced.add(eid)
+
     for i, c in enumerate(data.get("contracts") or []):
         if not isinstance(c, dict):
             continue
         impl = c.get("implement_as")
-        if impl != "runtime_guard":
-            continue
         cid = contract_id(c)
-        if cid and cid not in enforced:
+        impl_at = c.get("implemented_at")
+        has_impl_at = isinstance(impl_at, str) and impl_at.strip()
+
+        if impl in _NON_RUNTIME:
+            ev = c.get("evidence")
+            if not ev or not isinstance(ev, list) or len(ev) == 0:
+                warnings.append(
+                    f"contract[{i}]"
+                    + (f" id {cid!r}" if cid else "")
+                    + f": implement_as is {impl!r} but evidence: is empty "
+                    f"(non-runtime controls need artefacts a supervisor could ask for)"
+                )
+
+        if impl == "runtime_guard":
+            if cid and cid in enforced:
+                pass
+            elif has_impl_at:
+                pass
+            elif kind == "obligations":
+                warnings.append(
+                    f"contract[{i}] id {cid!r}: implement_as is runtime_guard under "
+                    f"kind: obligations — set implemented_at: (code/system symbol) "
+                    f"or use recorded_control/capability/governance with evidence:"
+                )
+            elif cid:
+                warnings.append(
+                    f"contract[{i}] id {cid!r}: implement_as is runtime_guard but no Process "
+                    f"lists it in enforced_by and implemented_at: is unset"
+                )
+
+        tr = c.get("translation_review")
+        if isinstance(tr, dict) and tr.get("status") == "unreviewed":
             warnings.append(
-                f"contract[{i}] id {cid!r}: implement_as is runtime_guard but no Process "
-                f"lists it in enforced_by (code guard has no process hook — "
-                f"or use capability/recorded_control/governance)"
+                f"contract[{i}]"
+                + (f" id {cid!r}" if cid else "")
+                + ": translation_review.status is unreviewed "
+                f"(sign-off still open)"
             )
     return warnings
 

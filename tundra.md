@@ -123,7 +123,11 @@ The checker (`tools/check_tundra.py`) verifies more than shape:
 - Crude **modality mismatch** warnings (quote *shall* vs Contract *not required*)  
 - Optional `translation_review: {status: unreviewed|reviewed}` — missing → warning (green cites ≠ human fidelity)
 
-**What green does *not* prove:** that the excerpt is the Official Journal, or that the Contract text is a faithful translation. Hash + review fields make drift and unreviewed text *visible*.
+**What green does *not* prove:** that the excerpt is the Official Journal, that the firm complies, or that a human has honestly reviewed the translation.  
+
+- Excerpt `sha256` = **repo drift detection** between stamp and body (re-stamp with `verify_sources.py --write --force` is an event, not proof of law).  
+- Coverage % = **drafting aid**; prefer **demonstrated** coverage (failure Scenario + evidence/`enforced_by`/`implemented_at`).  
+- `translation_review` / `evidence` = **inputs to assurance**, not assurance themselves.
 
 Coverage report (denominator is `sources/`, not the published instrument):
 
@@ -321,7 +325,9 @@ contracts:
     source: stated          # or inferred (AI assumption — not legal cite)
     rationale: optional why  # human context; not codegen
     # implement_as: runtime_guard   # see “How Tundra maps to implementation”
-    # evidence:                     # for non-runtime controls
+    # implemented_at: module.check   # code hook when no Process (obligations)
+    # applies_when: entity is not a microenterprise
+    # evidence:                     # required for capability/recorded_control/governance
     #   - type: board_minutes
     #     description: …
     # cite:                 # legal provenance (regulatory models)

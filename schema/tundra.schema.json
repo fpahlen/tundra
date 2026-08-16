@@ -191,6 +191,14 @@
                     }
                   }
                 }
+              },
+              "applies_when": {
+                "type": "string",
+                "description": "Plain-English applicability (carve-outs, entity types)"
+              },
+              "implemented_at": {
+                "type": "string",
+                "description": "Code/system symbol for runtime_guard without a Tundra Process (esp. kind: obligations)"
               }
             }
           }

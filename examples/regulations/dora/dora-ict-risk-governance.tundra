@@ -152,6 +152,12 @@ contracts:
       If verification of compliance with ICT risk management requirements is
       outsourced, the Financial entity remains fully responsible for that
       verification.
+    implement_as: governance
+    evidence:
+      - type: policy
+        description: Outsourcing / ICT third-party policy stating residual responsibility
+      - type: contract_clause
+        description: Written terms with the verifier retaining FE accountability
     cite:
       - article: "6"
         paragraph: "10"

@@ -57,6 +57,14 @@ jobs:
             echo "expected scope-qualifier warning"
             exit 1
           }
+      - name: Contract text must not widen quote scope
+        run: |
+          out=$(python tools/check_tundra.py examples/regulations/_fixtures/contract-widens-scope.tundra 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -qi 'over-application\|widened\|does not restrict' || {
+            echo "expected contract-vs-quote scope warning"
+            exit 1
+          }
       - name: Verify excerpt sha256 stamps
         run: python tools/verify_sources.py
       - name: Cross-instrument must not verify against other pins
