@@ -1,0 +1,36 @@
+# Must PASS: precise nested cite Art. 25(4)(a)(v) resolves (review 7).
+# Citation grammar must accept multi-level paths, not force coarsening to "4".
+
+tundra: nested-point-ok-fixture
+kind: obligations
+
+regulation:
+  id: MIFID_II
+  instrument: "Directive 2014/65/EU"
+  eli: "https://eur-lex.europa.eu/eli/dir/2014/65/oj"
+  edition: "OJ L 173, 12.6.2014"
+
+roles:
+  - Investment firm
+  - Client
+
+contracts:
+  - id: structured-deposit-execution-only-class
+    text: >
+      For execution-only under Art. 25(4), the Investment firm may treat
+      structured deposits as in the non-complex class excluding those that
+      incorporate a structure which makes it difficult for the Client to
+      understand the risk of return or the cost of exiting before term.
+    cite:
+      - article: "25"
+        paragraph: "4(a)(v)"
+        quote: "structured deposits, excluding those that incorporate a structure which makes it difficult for the client to understand the risk of return"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error: complex structured deposit treated as non-complex"
+    steps:
+      - Given the Investment firm offers execution-only services
+      - When a structured deposit embeds a hard-to-understand return structure and is treated as paragraph 4(a)(v) non-complex
+      - Then the contract [structured-deposit-execution-only-class] is broken

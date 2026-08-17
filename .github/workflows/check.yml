@@ -17,13 +17,16 @@ jobs:
       - name: Check active models and samples (errors only)
         run: python tools/check_tundra.py --all
       - name: Sample regulation translation present
-        run: test -f examples/regulations/dora/dora-ict-risk-governance.tundra
+        run: |
+          test -f examples/regulations/dora/dora-ict-risk-governance.tundra
+          test -f examples/regulations/mifid-ii-suitability/mifid-ii-art-25-suitability.tundra
       - name: Provenance fixtures must fail
         run: |
           set -e
           for f in \
             examples/regulations/_fixtures/bad-cite.tundra \
             examples/regulations/_fixtures/wrong-paragraph.tundra \
+            examples/regulations/_fixtures/wrong-nested-point.tundra \
             examples/regulations/_fixtures/obligations-escape.tundra \
             examples/regulations/_fixtures/no-quote-cite.tundra \
             examples/regulations/_fixtures/ellipsis-splice.tundra \
@@ -35,6 +38,8 @@ jobs:
             fi
             echo "failed as expected: $f"
           done
+      - name: Nested point path cite must pass (MiFID 4(a)(v))
+        run: python tools/check_tundra.py examples/regulations/_fixtures/nested-point-ok.tundra
       - name: Negated translation warns modality mismatch
         run: |
           out=$(python tools/check_tundra.py examples/regulations/_fixtures/negated-translation.tundra 2>&1 || true)
@@ -98,10 +103,28 @@ jobs:
             exit 1
           }
           true
+      - name: Sibling sources must not leak across regulation pins
+        run: |
+          # NIS2 quoting MiFID Art. 25 text must not verify via MIFID_II front-matter
+          out=$(python tools/check_tundra.py examples/regulations/_fixtures/sibling-cross-pin.tundra 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -qi 'unverified\|no excerpts for pin' || {
+            echo "expected unverified for NIS2 (must not use MIFID_II sources)"
+            exit 1
+          }
+          echo "$out" | grep -qi 'misattribution\|quote not found in' && {
+            echo "should not quote-match against another instrument's excerpt"
+            exit 1
+          }
+          true
       - name: Coverage report runs
-        run: python tools/check_tundra.py --coverage examples/regulations/dora/
+        run: |
+          python tools/check_tundra.py --coverage examples/regulations/dora/
+          python tools/check_tundra.py --coverage examples/regulations/mifid-ii-suitability/
       - name: Obligations-only sample checks clean
-        run: python tools/check_tundra.py examples/regulations/dora/dora-art-5-4-board-competence.tundra
+        run: |
+          python tools/check_tundra.py examples/regulations/dora/dora-art-5-4-board-competence.tundra
+          python tools/check_tundra.py examples/regulations/mifid-ii-suitability/mifid-ii-art-25-suitability.tundra
       - name: Skill regulation example checks clean
         run: python tools/check_tundra.py .grok/skills/tundra/references/example-regulation.tundra
       - name: Bad-structure fixture must fail (archived)

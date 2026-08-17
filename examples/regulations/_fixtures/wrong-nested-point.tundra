@@ -1,0 +1,30 @@
+# Must FAIL: quote from Art. 25(4)(a)(v) misattributed to 4(a)(i).
+
+tundra: wrong-nested-point-fixture
+kind: obligations
+
+regulation:
+  id: MIFID_II
+  instrument: "Directive 2014/65/EU"
+  eli: "https://eur-lex.europa.eu/eli/dir/2014/65/oj"
+  edition: "OJ L 173, 12.6.2014"
+
+roles:
+  - Investment firm
+
+contracts:
+  - id: misattributed-subpoint
+    text: The Investment firm mis-cites a structured-deposit rule as a shares rule.
+    cite:
+      - article: "25"
+        paragraph: "4(a)(i)"
+        quote: "structured deposits, excluding those that incorporate a structure which makes it difficult for the client to understand the risk of return"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error: misattributed sub-point"
+    steps:
+      - Given the Investment firm is in scope
+      - When the cite is wrong
+      - Then the contract [misattributed-subpoint] is broken

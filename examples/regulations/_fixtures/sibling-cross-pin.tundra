@@ -1,0 +1,31 @@
+# Must NOT verify against sibling MIFID_II sources when pin is NIS2.
+# Lives under _fixtures/ but quotes text that exists only in MiFID art-25.md —
+# front-matter binding must refuse cross-instrument use (review 7).
+
+tundra: sibling-cross-pin-fixture
+kind: obligations
+
+regulation:
+  id: NIS2
+  instrument: "Directive (EU) 2022/2555"
+  eli: "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+
+roles:
+  - Essential entity
+
+contracts:
+  - id: borrowed-mifid-quote
+    text: The Essential entity must obtain suitability information from clients.
+    cite:
+      - article: "25"
+        paragraph: "2"
+        quote: "shall obtain the necessary information regarding the client’s or potential client’s knowledge and experience in the investment field"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error: no suitability info"
+    steps:
+      - Given the Essential entity is in scope
+      - When it has no client knowledge information
+      - Then the contract [borrowed-mifid-quote] is broken

@@ -31,6 +31,9 @@
 - Source discovery: sibling `sources/` is always a candidate when `tundra-source`
   front-matter binds to `regulation.id` (descriptive sample folders, not only
   folder-name == pin)
+- **Nested point paths** (review 7 Batch A): cites like `4(a)(v)` resolve; roman
+  sub-points by nesting; inventory lists `a/v` paths; fixtures + CI for MiFID
+  nested cite, wrong sub-point, sibling-pin non-leak
 - **`models/`** reserved for user translations (no house instrument models)
 - **Archive:** process interview app, business examples → `archive/legacy-process/`
 

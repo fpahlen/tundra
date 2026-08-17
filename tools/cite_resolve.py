@@ -442,6 +442,12 @@ def find_sources_dir(
             repo_root / ".grok" / "skills" / "tundra" / "references" / "sources"
         )
 
+    # Descriptive sample folders (mifid-ii-suitability/) bound only via front-matter id
+    reg_root = repo_root / "examples" / "regulations"
+    if reg_root.is_dir():
+        for cand in sorted(reg_root.glob("*/sources")):
+            candidates.append(cand)
+
     seen: set[Path] = set()
     for c in candidates:
         try:
@@ -535,31 +541,172 @@ def parse_paragraph_markers(text: str) -> set[str]:
     return set(parse_paragraph_spans(text).keys())
 
 
+# Point markers: single letters, multi-char roman numerals, or digits — nested paths.
+_POINT_RE = re.compile(r"(?m)^(\s*)\(([a-z]{1,6}|\d+)\)\s+")
+_ROMAN_VALUES = {
+    "i": 1,
+    "ii": 2,
+    "iii": 3,
+    "iv": 4,
+    "v": 5,
+    "vi": 6,
+    "vii": 7,
+    "viii": 8,
+    "ix": 9,
+    "x": 10,
+    "xi": 11,
+    "xii": 12,
+    "xiii": 13,
+    "xiv": 14,
+    "xv": 15,
+    "xvi": 16,
+    "xx": 20,
+}
+
+
+def _indent_cols(ws: str) -> int:
+    return len(ws.replace("\t", "    "))
+
+
+def _is_roman_label(lab: str) -> bool:
+    return lab.lower() in _ROMAN_VALUES
+
+
+def _point_level(lab: str, stack: list[tuple[int, str]]) -> int:
+    """
+    Nesting level for a point label (0 = primary (a)(b)…, 1 = roman (i)(ii)…, 2 = numeric).
+
+    Ambiguous single-character romans (i, v, x): continue a letter sequence when the
+    previous primary was the previous alphabet letter (h→i); otherwise nest as roman
+    under the current primary when one exists.
+    """
+    lab = lab.lower()
+    if lab.isdigit():
+        return 2 if stack else 0
+    if lab in _ROMAN_VALUES and len(lab) >= 2:
+        return 1
+    if lab in ("i", "v", "x"):
+        prev_primary = None
+        for lvl, plab in stack:
+            if lvl == 0:
+                prev_primary = plab
+        if prev_primary and len(prev_primary) == 1 and len(lab) == 1:
+            if ord(lab) == ord(prev_primary) + 1:
+                return 0  # (h) then (i) as sequential letters (e.g. DORA 5(2))
+        if stack and stack[-1][0] == 0:
+            return 1  # under a letter primary → roman sub-point
+        if stack and stack[-1][0] == 1:
+            return 1  # sibling roman
+        return 0
+    # ordinary letter labels (a)–(z) and multi-char non-roman
+    if lab.isalpha():
+        return 0
+    return 0
+
+
+def parse_nested_point_spans(para_body: str) -> dict[str, str]:
+    """
+    Map nested point path keys to span bodies.
+
+    Keys use '/' separators: 'a', 'a/v', 'a/ii', 'i/i' (path form of 2(i)(i)).
+    Prefer indent when markers are indented differently; otherwise EU-style
+    letter → roman → number sequencing.
+    """
+    if not para_body:
+        return {}
+    matches = list(_POINT_RE.finditer(para_body))
+    if not matches:
+        return {}
+
+    raw: list[tuple[int, str, int, int]] = []
+    for m in matches:
+        raw.append(
+            (
+                _indent_cols(m.group(1)),
+                m.group(2).lower(),
+                m.end(),
+                m.start(),
+            )
+        )
+
+    indents = {it[0] for it in raw}
+    use_indent = len(indents) > 1
+
+    # First pass: assign level + path to each marker
+    stack: list[tuple[int, str]] = []
+    annotated: list[tuple[int, str, int, int, str]] = []  # ind, lab, cstart, mstart, path
+    for ind, lab, cstart, mstart in raw:
+        if use_indent:
+            while stack and stack[-1][0] >= ind:
+                stack.pop()
+            level = ind
+            stack.append((level, lab))
+        else:
+            level = _point_level(lab, stack)
+            while stack and stack[-1][0] >= level:
+                stack.pop()
+            stack.append((level, lab))
+        path = "/".join(s[1] for s in stack)
+        annotated.append((level, lab, cstart, mstart, path))
+
+    spans: dict[str, str] = {}
+    for i, (level, _lab, cstart, _mstart, path) in enumerate(annotated):
+        end = len(para_body)
+        for j in range(i + 1, len(annotated)):
+            j_level, _, _, j_mstart, _ = annotated[j]
+            if j_level <= level:
+                end = j_mstart
+                break
+        spans[path] = para_body[cstart:end]
+
+    return spans
+
+
 def parse_point_spans(para_body: str) -> dict[str, str]:
-    """Map point letter -> body within one paragraph."""
-    return _slice_by_markers(
-        para_body,
-        re.compile(r"(?m)^(\s*)\(([a-z])\)\s+"),
-        lambda m: m.group(2).lower(),
-    )
+    """Map top-level point labels (and nested path keys) -> body within one paragraph.
+
+    Top-level keys remain single labels ('a', 'b') for backward-compatible coverage.
+    Nested paths also appear as 'a/v'. Prefer parse_nested_point_spans for full paths.
+    """
+    nested = parse_nested_point_spans(para_body)
+    if not nested:
+        return {}
+    # Include full nested map (keys may contain '/')
+    return nested
 
 
 def parse_point_markers(text: str) -> set[str]:
     return set(parse_point_spans(text).keys())
 
 
-def split_paragraph_point(paragraph: str | None) -> tuple[str | None, str | None]:
-    """'2(a)' -> ('2', 'a'); '2' -> ('2', None)."""
+def parse_paragraph_path(
+    paragraph: str | None,
+) -> tuple[str | None, list[str]]:
+    """'4(a)(v)' -> ('4', ['a', 'v']); '2(a)' -> ('2', ['a']); '2' -> ('2', [])."""
     if not paragraph or not str(paragraph).strip():
-        return None, None
+        return None, []
     p = str(paragraph).strip()
-    m = re.match(r"^(\d+)\s*\(([a-z])\)", p, re.I)
+    m = re.match(r"^(\d+)((?:\s*\([A-Za-z0-9]+\))*)$", p)
     if m:
-        return m.group(1), m.group(2).lower()
+        pnum = m.group(1)
+        parts = re.findall(r"\(([A-Za-z0-9]+)\)", m.group(2))
+        return pnum, [x.lower() for x in parts]
     m2 = re.match(r"^(\d+)$", p)
     if m2:
-        return m2.group(1), None
-    return p, None
+        return m2.group(1), []
+    return p, []
+
+
+def split_paragraph_point(paragraph: str | None) -> tuple[str | None, str | None]:
+    """'2(a)' -> ('2', 'a'); '4(a)(v)' -> ('4', 'a/v'); '2' -> ('2', None)."""
+    pnum, path = parse_paragraph_path(paragraph)
+    if not path:
+        return pnum, None
+    return pnum, "/".join(path)
+
+
+def path_key(path: list[str]) -> str:
+    return "/".join(path)
 
 
 def quote_in_span(quote: str, span: str) -> bool:
@@ -606,21 +753,25 @@ def resolve_cite_span(
     excerpt: str, paragraph: str | None
 ) -> tuple[str | None, str | None, str]:
     """
-    Return (pnum, point, text_span_to_match).
+    Return (pnum, point_path, text_span_to_match).
+
+    point_path is None, a single label ('a'), or a nested path ('a/v').
     If paragraph omitted, span is the full excerpt.
     """
     if not paragraph or not str(paragraph).strip():
         return None, None, excerpt
-    pnum, point = split_paragraph_point(str(paragraph).strip())
+    pnum, path = parse_paragraph_path(str(paragraph).strip())
+    point = path_key(path) if path else None
     spans = parse_paragraph_spans(excerpt)
     if not pnum or pnum not in spans:
         return pnum, point, ""
     body = spans[pnum]
-    if point:
-        pts = parse_point_spans(body)
-        if point not in pts:
+    if path:
+        pts = parse_nested_point_spans(body)
+        key = path_key(path)
+        if key not in pts:
             return pnum, point, ""
-        return pnum, point, pts[point]
+        return pnum, point, pts[key]
     return pnum, point, body
 
 
@@ -892,16 +1043,17 @@ def check_provenance(
                 continue
             if point:
                 if pnum and pnum in spans:
-                    pts = parse_point_spans(spans[pnum])
+                    pts = parse_nested_point_spans(spans[pnum])
                     if point not in pts:
+                        known = ", ".join(sorted(pts.keys())) or "none"
                         errors.append(
-                            f"{loc} cite[{j}]: point ({point}) not found under "
-                            f"paragraph {pnum} in {path.name}"
+                            f"{loc} cite[{j}]: point path ({point}) not found under "
+                            f"paragraph {pnum} in {path.name} (known: {known})"
                         )
                         continue
                 elif not span:
                     errors.append(
-                        f"{loc} cite[{j}]: point ({point}) not found in {path.name}"
+                        f"{loc} cite[{j}]: point path ({point}) not found in {path.name}"
                     )
                     continue
 
@@ -959,7 +1111,10 @@ def check_provenance(
 
 
 def enumerate_source_coverage(sources_dir: Path) -> dict[str, dict[str, Any]]:
-    """article -> {paragraphs: set, points: set, file: name}"""
+    """article -> {paragraphs: set, points: set, file: name}
+
+    points includes nested path keys (e.g. 'a', 'a/v', 'a/ii').
+    """
     out: dict[str, dict[str, Any]] = {}
     for p in sorted(sources_dir.glob("*.md")):
         if p.name.lower() in ("readme.md",):
@@ -976,7 +1131,7 @@ def enumerate_source_coverage(sources_dir: Path) -> dict[str, dict[str, Any]]:
         spans = parse_paragraph_spans(text)
         points: set[str] = set()
         for body in spans.values():
-            points |= set(parse_point_spans(body).keys())
+            points |= set(parse_nested_point_spans(body).keys())
         out[art] = {
             "paragraphs": set(spans.keys()),
             "points": points,

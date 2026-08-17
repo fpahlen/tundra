@@ -216,8 +216,8 @@ def run_coverage(target: Path, yaml) -> int:
     """Print instrument coverage (quoted cites only) vs sources/ inventory."""
     from cite_resolve import (  # local reuse
         load_article_excerpt,
+        parse_nested_point_spans,
         parse_paragraph_spans,
-        parse_point_spans,
     )
 
     if target.is_file():
@@ -287,7 +287,7 @@ def run_coverage(target: Path, yaml) -> int:
                 _p, text = load_article_excerpt(sources_dir, art)
                 excerpt_cache[art] = text or ""
             spans = parse_paragraph_spans(excerpt_cache.get(art, ""))
-            if pnum in spans and point in parse_point_spans(spans[pnum]):
+            if pnum in spans and point in parse_nested_point_spans(spans[pnum]):
                 cited_points_valid.setdefault(art, set()).add(point)
                 if is_dem:
                     dem_points_valid.setdefault(art, set()).add(point)
