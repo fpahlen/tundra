@@ -25,7 +25,12 @@
 - Review 6: `applies_when` joins scope check (not off-switch); population-after-cue + widening;
   `evidence.type` enum; date coerce; collapsed warning counts; distinct When for demonstrated
 - **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
-- **Sample only:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice)
+- **Samples:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice);
+  `examples/regulations/mifid-ii-suitability/` (partial Art. 25 suitability/appropriateness —
+  second instrument so the path is not DORA-shaped only)
+- Source discovery: sibling `sources/` is always a candidate when `tundra-source`
+  front-matter binds to `regulation.id` (descriptive sample folders, not only
+  folder-name == pin)
 - **`models/`** reserved for user translations (no house instrument models)
 - **Archive:** process interview app, business examples → `archive/legacy-process/`
 

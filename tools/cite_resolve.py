@@ -415,20 +415,25 @@ def find_sources_dir(
     candidates: list[Path] = []
 
     parent = model_path.parent
-    # Model beside sources only if parent folder names the instrument
-    if parent.name.lower() in (rid_l, rid_slug):
-        candidates.append(parent / "sources")
+    # Sibling sources/ always a candidate; _dir_declares_instrument requires
+    # path-name or tundra-source front-matter id match (no cross-instrument use).
+    # Allows descriptive sample folders (e.g. mifid-ii-suitability/) with id=MIFID_II.
+    candidates.append(parent / "sources")
     # Parent is sources/ itself?
-    if parent.name.lower() == "sources" and parent.parent.name.lower() in (
-        rid_l,
-        rid_slug,
-    ):
+    if parent.name.lower() == "sources":
         candidates.append(parent)
 
     candidates.append(repo_root / "examples" / "regulations" / rid_l / "sources")
     candidates.append(repo_root / "examples" / "regulations" / rid_slug / "sources")
+    # Also try underscore/hyphen variants of the pin (MIFID_II ↔ mifid-ii)
+    rid_hyphen = rid_l.replace("_", "-")
+    rid_under = rid_l.replace("-", "_")
+    for folder in {rid_l, rid_slug, rid_hyphen, rid_under}:
+        candidates.append(repo_root / "examples" / "regulations" / folder / "sources")
     candidates.append(repo_root / "sources" / rid_l)
     candidates.append(repo_root / "sources" / rid_slug)
+    candidates.append(repo_root / "sources" / rid_hyphen)
+    candidates.append(repo_root / "sources" / rid_under)
     candidates.append(repo_root / "sources" / rid)
 
     # Skill demo sources — only for DEMO-REG

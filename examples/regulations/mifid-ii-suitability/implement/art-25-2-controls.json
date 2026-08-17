@@ -1,0 +1,66 @@
+{
+  "source_model": "examples/regulations/mifid-ii-suitability/mifid-ii-art-25-suitability.tundra",
+  "regulation": {
+    "id": "MIFID_II",
+    "instrument": "Directive 2014/65/EU",
+    "eli": "https://eur-lex.europa.eu/eli/dir/2014/65/oj"
+  },
+  "controls": [
+    {
+      "id": "obtain-suitability-info",
+      "statement": "When providing investment advice or portfolio management, the Investment firm must obtain the necessary information on the Client's or Potential client's knowledge and experience in the investment field relevant to the product or service, financial situation including ability to bear losses, and investment objectives including risk tolerance.",
+      "implement_as": "recorded_control",
+      "owners": ["Investment firm"],
+      "cite": [
+        {
+          "article": "25",
+          "paragraph": "2",
+          "quote": "shall obtain the necessary information regarding the client’s or potential client’s knowledge and experience in the investment field relevant to the specific type of product or service, that person’s financial situation including his ability to bear losses, and his investment objectives including his risk tolerance"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "other",
+          "description": "Suitability questionnaire or fact-find capturing knowledge, experience, finances, objectives and risk tolerance"
+        },
+        {
+          "type": "register",
+          "description": "Client suitability profile record retained for the relationship"
+        }
+      ],
+      "assurance_probes": [
+        "Error: advice without collecting suitability information"
+      ],
+      "runtime_code": false,
+      "notes": "Evidence plumbing and GRC probes; do not fake a suitability scoring engine from the model alone."
+    },
+    {
+      "id": "recommend-only-if-suitable",
+      "statement": "When providing investment advice or portfolio management, the Investment firm may recommend (or decide for portfolio management) only investment services and financial instruments that are suitable for the Client or Potential client, in particular in accordance with that person's risk tolerance and ability to bear losses.",
+      "implement_as": "recorded_control",
+      "owners": ["Investment firm"],
+      "cite": [
+        {
+          "article": "25",
+          "paragraph": "2",
+          "quote": "recommend to the client or potential client the investment services and financial instruments that are suitable for him and, in particular, are in accordance with his risk tolerance and ability to bear losses"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "other",
+          "description": "Documented suitability assessment decision linked to the recommendation or portfolio action"
+        },
+        {
+          "type": "log_export",
+          "description": "Audit trail that a recommendation was blocked or not issued when suitability failed"
+        }
+      ],
+      "assurance_probes": [
+        "Error: unsuitable product recommended"
+      ],
+      "runtime_code": false,
+      "notes": "Recorded decision control; suitability judgment is firm methodology, not a unit test."
+    }
+  ]
+}

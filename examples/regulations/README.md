@@ -5,7 +5,8 @@ They are **not** part of the language core (`tundra.md`, schema, checker).
 
 | Instrument | Path |
 | --- | --- |
-| DORA (EU) 2022/2554 — first sample | [`dora/`](dora/) |
+| DORA (EU) 2022/2554 — first sample (ICT governance) | [`dora/`](dora/) |
+| MiFID II 2014/65/EU Art. 25 — suitability / appropriateness | [`mifid-ii-suitability/`](mifid-ii-suitability/) |
 
 Add another regulation by creating `examples/regulations/<short-id>/` with:
 

@@ -12,14 +12,14 @@ The **core language is instrument-agnostic**. Specific laws appear only as **sam
 
 ## What you get (the product surface)
 
-For a standing duty such as DORA Art. 5(4) (board ICT knowledge), implement does **not** invent `assert board_understands_ict()`. It produces a **control pack**:
+For a standing duty such as DORA Art. 5(4) (board ICT knowledge) or MiFID II Art. 25(2) (suitability information), implement does **not** invent fake unit tests of competence or “product is suitable.” It produces a **control pack**:
 
 | Asset | Example |
 | --- | --- |
-| Control statement + legal cite | [art-5-4-control-pack.md](examples/regulations/dora/implement/art-5-4-control-pack.md) |
-| Evidence design | training records, board minutes, attestation |
+| Control statement + legal cite | [DORA Art. 5(4)](examples/regulations/dora/implement/art-5-4-control-pack.md) · [MiFID II Art. 25(2)](examples/regulations/mifid-ii-suitability/implement/art-25-2-control-pack.md) |
+| Evidence design | training records, questionnaires, registers, attestation |
 | Assurance probe | Scenario as internal-audit script |
-| Machine-readable row | [art-5-4-controls.json](examples/regulations/dora/implement/art-5-4-controls.json) |
+| Machine-readable row | [art-5-4-controls.json](examples/regulations/dora/implement/art-5-4-controls.json) · [art-25-2-controls.json](examples/regulations/mifid-ii-suitability/implement/art-25-2-controls.json) |
 
 **Drafting aids vs assurance:** the checker, coverage %, and excerpt `sha256` help you **draft and detect repo drift**. They do **not** prove the excerpt is the Official Journal, or that the firm complies. Evidence and human review do.
 
@@ -38,7 +38,7 @@ For a standing duty such as DORA Art. 5(4) (board ICT knowledge), implement does
 
 ## Quick start
 
-1. Skim **What you get** above and [`examples/regulations/dora/implement/`](examples/regulations/dora/implement/).
+1. Skim **What you get** above and the implement samples under [`examples/regulations/`](examples/regulations/) (DORA + MiFID II suitability).
 2. Read [`tundra.md`](tundra.md) (regulatory models + implementation mapping).
 3. Check samples:
 
@@ -48,6 +48,7 @@ For a standing duty such as DORA Art. 5(4) (board ICT knowledge), implement does
    python -m pip install -r requirements-dev.txt
    python tools/check_tundra.py --all
    python tools/check_tundra.py --coverage examples/regulations/dora/
+   python tools/check_tundra.py --coverage examples/regulations/mifid-ii-suitability/
    python tools/verify_sources.py   # excerpt body hash = drift detection only
    ```
 

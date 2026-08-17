@@ -1,0 +1,270 @@
+# SAMPLE: pure obligations slice (no invented lifecycle).
+# MiFID II Article 25 — suitability / appropriateness / reporting.
+# Working excerpts: ./sources/ — Official Journal / EUR-Lex remain authoritative.
+# Second instrument sample (with DORA) so the translation path is not DORA-shaped only.
+
+tundra: mifid-ii-art-25-suitability
+kind: obligations
+
+regulation:
+  id: MIFID_II
+  instrument: "Directive 2014/65/EU"
+  eli: "https://eur-lex.europa.eu/eli/dir/2014/65/oj"
+  edition: "OJ L 173, 12.6.2014"
+  notes: >
+    Partial Art. 25 suitability/appropriateness slice — not full MiFID II.
+    Level 2 detail (e.g. Delegated Regulation (EU) 2017/565 Art. 54) is a
+    separate instrument and is not cited in this model.
+
+roles:
+  - Investment firm
+  - Client
+  - Potential client
+  - Natural person giving advice or information
+  - Competent authority
+
+relationships:
+  - Natural person giving advice or information acts on behalf of Investment firm
+  - Investment firm provides investment services to Client
+  - Investment firm provides investment services to Potential client
+  - Competent authority is Supervisor of Investment firm
+
+contracts:
+  - id: staff-knowledge-and-competence
+    text: >
+      The Investment firm must ensure that each Natural person giving advice or
+      information about financial instruments, investment services or ancillary
+      services to clients on its behalf possesses the necessary knowledge and
+      competence to fulfil their obligations under Article 24 and Article 25,
+      and must be able to demonstrate this to the Competent authority on request.
+    implement_as: capability
+    evidence:
+      - type: training_record
+        description: Adviser knowledge and competence training or qualification records
+      - type: register
+        description: Register of natural persons authorised to give advice or information
+      - type: attestation
+        description: Periodic firm attestation that staff meet published competence criteria
+    cite:
+      - article: "25"
+        paragraph: "1"
+        quote: "natural persons giving investment advice or information about financial instruments, investment services or ancillary services to clients on behalf of the investment firm possess the necessary knowledge and competence"
+    translation_review:
+      status: unreviewed
+
+  - id: obtain-suitability-info
+    text: >
+      When providing investment advice or portfolio management, the Investment
+      firm must obtain the necessary information on the Client's or Potential
+      client's knowledge and experience in the investment field relevant to the
+      product or service, financial situation including ability to bear losses,
+      and investment objectives including risk tolerance.
+    implement_as: recorded_control
+    evidence:
+      - type: other
+        description: Suitability questionnaire or fact-find capturing knowledge, experience, finances, objectives and risk tolerance
+      - type: register
+        description: Client suitability profile record retained for the relationship
+    cite:
+      - article: "25"
+        paragraph: "2"
+        quote: "shall obtain the necessary information regarding the client’s or potential client’s knowledge and experience in the investment field relevant to the specific type of product or service, that person’s financial situation including his ability to bear losses, and his investment objectives including his risk tolerance"
+    translation_review:
+      status: unreviewed
+
+  - id: recommend-only-if-suitable
+    text: >
+      When providing investment advice or portfolio management, the Investment
+      firm may recommend (or decide for portfolio management) only investment
+      services and financial instruments that are suitable for the Client or
+      Potential client, in particular in accordance with that person's risk
+      tolerance and ability to bear losses.
+    implement_as: recorded_control
+    evidence:
+      - type: other
+        description: Documented suitability assessment decision linked to the recommendation or portfolio action
+      - type: log_export
+        description: Audit trail that a recommendation was blocked or not issued when suitability failed
+    cite:
+      - article: "25"
+        paragraph: "2"
+        quote: "recommend to the client or potential client the investment services and financial instruments that are suitable for him and, in particular, are in accordance with his risk tolerance and ability to bear losses"
+    translation_review:
+      status: unreviewed
+
+  - id: obtain-appropriateness-info
+    text: >
+      When providing investment services other than those referred to in
+      paragraph 2 (investment advice or portfolio management), the Investment
+      firm must ask the Client or Potential client for information on knowledge
+      and experience relevant to the product or service so the firm can assess
+      whether the service or product is appropriate.
+    implement_as: recorded_control
+    evidence:
+      - type: other
+        description: Appropriateness questionnaire capturing knowledge and experience for the product or service type
+      - type: register
+        description: Appropriateness assessment record for the client and product
+    cite:
+      - article: "25"
+        paragraph: "3"
+        quote: "when providing investment services other than those referred to in paragraph 2, ask the client or potential client to provide information regarding that person’s knowledge and experience in the investment field relevant to the specific type of product or service offered or demanded"
+    translation_review:
+      status: unreviewed
+
+  - id: warn-if-not-appropriate
+    text: >
+      If, based on the information received, the Investment firm considers that
+      the product or service is not appropriate for the Client or Potential
+      client, the firm must warn that person (standardised format allowed).
+    implement_as: recorded_control
+    evidence:
+      - type: other
+        description: Client-facing appropriateness warning communication retained as durable medium or system record
+      - type: log_export
+        description: Log that a not-appropriate warning was issued before proceeding
+    cite:
+      - article: "25"
+        paragraph: "3"
+        quote: "that the product or service is not appropriate to the client or potential client, the investment firm shall warn the client or potential client"
+    translation_review:
+      status: unreviewed
+
+  - id: warn-if-info-not-provided
+    text: >
+      If the Client or Potential client does not provide information, or provides
+      insufficient information, on knowledge and experience, the Investment firm
+      must warn them that it is not in a position to determine whether the
+      service or product is appropriate (standardised format allowed).
+    implement_as: recorded_control
+    evidence:
+      - type: other
+        description: Client-facing insufficient-information warning retained as durable medium or system record
+      - type: log_export
+        description: Log that an insufficient-information warning was issued
+    cite:
+      - article: "25"
+        paragraph: "3"
+        quote: "the investment firm shall warn them that the investment firm is not in a position to determine whether the service or product envisaged is appropriate for them"
+    translation_review:
+      status: unreviewed
+
+  - id: execution-only-conditions
+    text: >
+      The Investment firm may provide execution-only or reception-and-transmission
+      services without the paragraph 3 appropriateness steps only when all
+      statutory conditions are met: non-complex instruments in scope of
+      paragraph 4(a), client initiative, clear warning that appropriateness is
+      not assessed, and compliance with Article 23 conflicts obligations.
+    implement_as: permission
+    applies_when: >
+      Service only consists of execution or reception and transmission of client
+      orders (with or without ancillary services as limited by Art. 25(4)), and
+      the firm seeks to omit the paragraph 3 appropriateness assessment.
+    evidence:
+      - type: policy
+        description: Execution-only policy defining when paragraph 3 may be omitted
+      - type: other
+        description: Client risk warning that appropriateness is not assessed, retained as durable medium
+      - type: log_export
+        description: Order path flag showing execution-only eligibility checks passed or failed
+    cite:
+      - article: "25"
+        paragraph: "4"
+        quote: "without the need to obtain the information or make the determination provided for in paragraph 3 where all the following conditions are met"
+    translation_review:
+      status: unreviewed
+
+  - id: client-service-agreement-record
+    text: >
+      The Investment firm must establish a record that includes the document or
+      documents agreed with the Client setting out the rights and obligations of
+      the parties and the other terms on which services will be provided
+      (incorporation by reference allowed).
+    implement_as: recorded_control
+    evidence:
+      - type: contract_clause
+        description: Client agreement or terms of business setting out rights and obligations
+      - type: register
+        description: Record linking the client to the agreed service terms documents
+    cite:
+      - article: "25"
+        paragraph: "5"
+        quote: "establish a record that includes the document or documents agreed between the investment firm and the client that set out the rights and obligations of the parties"
+    translation_review:
+      status: unreviewed
+
+  - id: suitability-statement-before-transaction
+    text: >
+      When providing investment advice, the Investment firm must, before the
+      transaction is made, provide the Client with a statement on suitability in
+      a durable medium specifying the advice given and how it meets the
+      preferences, objectives and other characteristics of the retail client
+      (distance-communication timing exception only as set out in Art. 25(6)).
+    implement_as: recorded_control
+    evidence:
+      - type: other
+        description: Suitability statement provided to the client in a durable medium before the transaction
+      - type: log_export
+        description: Timestamped proof the suitability statement was delivered prior to the transaction (or under the statutory distance exception)
+    cite:
+      - article: "25"
+        paragraph: "6"
+        quote: "When providing investment advice, the investment firm shall, before the transaction is made, provide the client with a statement on suitability in a durable medium specifying the advice given and how that advice meets the preferences, objectives and other characteristics of the retail client"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error: adviser without demonstrated knowledge and competence"
+    steps:
+      - Given the Investment firm provides investment advice to Clients
+      - When a Natural person giving advice or information lacks the necessary knowledge and competence and the firm cannot demonstrate competence to the Competent authority
+      - Then the contract [staff-knowledge-and-competence] is broken
+
+  - name: "Error: advice without collecting suitability information"
+    steps:
+      - Given the Investment firm is providing investment advice or portfolio management
+      - When the firm has not obtained information on knowledge, experience, financial situation including loss-bearing capacity, and investment objectives including risk tolerance
+      - Then the contract [obtain-suitability-info] is broken
+
+  - name: "Error: unsuitable product recommended"
+    steps:
+      - Given the Investment firm is providing investment advice
+      - When the firm recommends a financial instrument that is not suitable for the Client given risk tolerance and ability to bear losses
+      - Then the contract [recommend-only-if-suitable] is broken
+
+  - name: "Error: non-advice service without appropriateness questions"
+    steps:
+      - Given the Investment firm provides an investment service other than advice or portfolio management and is not relying on a valid execution-only path
+      - When the firm does not ask the Client for knowledge and experience relevant to the product or service
+      - Then the contract [obtain-appropriateness-info] is broken
+
+  - name: "Error: no warning when product is not appropriate"
+    steps:
+      - Given the Investment firm has assessed appropriateness for a non-advice service
+      - When the firm considers the product not appropriate and issues no warning to the Client
+      - Then the contract [warn-if-not-appropriate] is broken
+
+  - name: "Error: no warning when appropriateness information is missing"
+    steps:
+      - Given the Investment firm is assessing appropriateness
+      - When the Client provides no or insufficient knowledge and experience information and the firm issues no warning that appropriateness cannot be determined
+      - Then the contract [warn-if-info-not-provided] is broken
+
+  - name: "Error: execution-only without statutory conditions"
+    steps:
+      - Given the Investment firm provides only execution or reception and transmission of orders
+      - When the firm omits the paragraph 3 appropriateness steps without meeting all Article 25(4) conditions
+      - Then the contract [execution-only-conditions] is broken
+
+  - name: "Error: no client service agreement record"
+    steps:
+      - Given the Investment firm provides investment services to a Client
+      - When there is no record of documents agreed with the Client setting out rights, obligations and service terms
+      - Then the contract [client-service-agreement-record] is broken
+
+  - name: "Error: advice transaction without prior suitability statement"
+    steps:
+      - Given the Investment firm provides investment advice to a retail Client and distance-communication exception conditions do not apply
+      - When the firm executes the advised transaction without providing a suitability statement in a durable medium beforehand
+      - Then the contract [suitability-statement-before-transaction] is broken
