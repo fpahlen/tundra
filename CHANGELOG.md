@@ -34,6 +34,9 @@
 - **Nested point paths** (review 7 Batch A): cites like `4(a)(v)` resolve; roman
   sub-points by nesting; inventory lists `a/v` paths; fixtures + CI for MiFID
   nested cite, wrong sub-point, sibling-pin non-leak
+- **Coverage honesty** (review 7 Batch B): multi-subparagraph duty-units (`6¶2`);
+  rename demonstrated → implementable (by design); `regulation.out_of_scope` for
+  non-firm addressees; optional `evidence.ref` reserved for a future harder bar
 - **`models/`** reserved for user translations (no house instrument models)
 - **Archive:** process interview app, business examples → `archive/legacy-process/`
 

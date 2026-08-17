@@ -24,7 +24,10 @@ from cite_resolve import (  # noqa: E402
     check_provenance,
     cites_from_models,
     enumerate_source_coverage,
+    parse_out_of_scope,
+    resolve_quote_subparagraph,
     split_paragraph_point,
+    units_excluded_by_out_of_scope,
 )
 from model_checks import (  # noqa: E402
     check_contract_demonstration,
@@ -242,9 +245,10 @@ def run_coverage(target: Path, yaml) -> int:
     inventory = enumerate_source_coverage(sources_dir)
     cited = cites_from_models(model_paths, yaml)
 
-    # Per-model demonstrated contracts
+    # Per-model implementable-by-design contracts + out_of_scope unions
     dem_by_model: dict[str, tuple[set[str], set[str]]] = {}
     dem_extra_warnings: list[str] = []
+    oos_all: set[tuple[str, str]] = set()
     for mp in model_paths:
         try:
             data = yaml.safe_load(mp.read_text(encoding="utf-8"))
@@ -254,14 +258,17 @@ def run_coverage(target: Path, yaml) -> int:
             ids, texts, dw = demonstrated_contract_keys(data)
             dem_by_model[str(mp)] = (ids, texts)
             dem_extra_warnings.extend(dw)
+            reg = data.get("regulation")
+            if isinstance(reg, dict):
+                oos_all |= parse_out_of_scope(reg)
 
     quoted = [c for c in cited if (c.get("quote") or "").strip()]
     bare = [c for c in cited if not (c.get("quote") or "").strip()]
 
-    cited_paras: dict[str, set[str]] = {a: set() for a in inventory}
-    dem_paras: dict[str, set[str]] = {a: set() for a in inventory}
+    cited_units: dict[str, set[str]] = {a: set() for a in inventory}
+    impl_units: dict[str, set[str]] = {a: set() for a in inventory}
     cited_points_valid: dict[str, set[str]] = {a: set() for a in inventory}
-    dem_points_valid: dict[str, set[str]] = {a: set() for a in inventory}
+    impl_points_valid: dict[str, set[str]] = {a: set() for a in inventory}
 
     excerpt_cache: dict[str, str] = {}
     for c in quoted:
@@ -270,82 +277,125 @@ def run_coverage(target: Path, yaml) -> int:
             art = str(int(art))
         pnum, point = split_paragraph_point(c.get("paragraph") or "")
         dem_ids, dem_texts = dem_by_model.get(c.get("model", ""), (set(), set()))
-        is_dem = False
+        is_impl = False
         cid = c.get("contract_id") or ""
         ctext = c.get("contract_text") or ""
         if cid and cid in dem_ids:
-            is_dem = True
+            is_impl = True
         if ctext and ctext in dem_texts:
-            is_dem = True
+            is_impl = True
 
         if pnum and pnum.isdigit():
-            cited_paras.setdefault(art, set()).add(pnum)
-            if is_dem:
-                dem_paras.setdefault(art, set()).add(pnum)
-        if point and pnum:
             if art not in excerpt_cache:
                 _p, text = load_article_excerpt(sources_dir, art)
                 excerpt_cache[art] = text or ""
             spans = parse_paragraph_spans(excerpt_cache.get(art, ""))
-            if pnum in spans and point in parse_nested_point_spans(spans[pnum]):
+            body = spans.get(pnum, "")
+            # Multi-duty honesty: credit subparagraph unit, not whole paragraph
+            sub_ord = resolve_quote_subparagraph(body, c.get("quote") or "")
+            if sub_ord:
+                unit = f"{pnum}¶{sub_ord}"
+            else:
+                unit = pnum
+            cited_units.setdefault(art, set()).add(unit)
+            if is_impl:
+                impl_units.setdefault(art, set()).add(unit)
+            if point and pnum in spans and point in parse_nested_point_spans(
+                spans[pnum]
+            ):
                 cited_points_valid.setdefault(art, set()).add(point)
-                if is_dem:
-                    dem_points_valid.setdefault(art, set()).add(point)
+                if is_impl:
+                    impl_points_valid.setdefault(art, set()).add(point)
 
-    total_p = total_pc = total_pts = total_ptc = 0
-    total_dc = total_dpt = 0
+    total_u = total_uc = total_ui = total_pts = total_ptc = total_pti = 0
+    total_oos = 0
     print(f"Coverage for {sources_dir} ({len(model_paths)} model file(s))\n")
     print(
         f"Cites: {len(quoted)} quoted / {len(bare)} bare "
         f"(only quoted cites count toward coverage)\n"
     )
+    if oos_all:
+        oos_fmt = ", ".join(
+            f"{a}:{p}" for a, p in sorted(oos_all, key=lambda t: (t[0], t[1]))
+        )
+        print(f"out_of_scope (excluded from denominator): {oos_fmt}\n")
+
     for art in sorted(inventory.keys(), key=lambda x: int(x) if x.isdigit() else x):
         inv = inventory[art]
-        paras = inv["paragraphs"]
+        units = set(inv.get("units") or inv["paragraphs"])
+        drop = units_excluded_by_out_of_scope(units, oos_all, art)
+        denom = units - drop
+        total_oos += len(drop)
         points = inv["points"]
-        cp = cited_paras.get(art, set())
-        dp = dem_paras.get(art, set())
-        missing_p = sorted(paras - cp, key=lambda x: int(x) if x.isdigit() else 0)
-        have_p = sorted(paras & cp, key=lambda x: int(x) if x.isdigit() else 0)
-        have_d = sorted(paras & dp, key=lambda x: int(x) if x.isdigit() else 0)
+        cu = cited_units.get(art, set()) & denom
+        iu = impl_units.get(art, set()) & denom
+        # also allow bare paragraph credit to count a multi-unit only if all hit — no:
+        # cited may have '6¶2'; denom has '6¶1','6¶2',...
+        missing_u = sorted(
+            denom - cu,
+            key=lambda x: (
+                int(x.split("¶")[0]) if x.split("¶")[0].isdigit() else 0,
+                x,
+            ),
+        )
+        have_u = sorted(
+            denom & cu,
+            key=lambda x: (
+                int(x.split("¶")[0]) if x.split("¶")[0].isdigit() else 0,
+                x,
+            ),
+        )
+        have_i = sorted(
+            denom & iu,
+            key=lambda x: (
+                int(x.split("¶")[0]) if x.split("¶")[0].isdigit() else 0,
+                x,
+            ),
+        )
         cpt = cited_points_valid.get(art, set())
-        dpt = dem_points_valid.get(art, set())
+        ipt = impl_points_valid.get(art, set())
         missing_pt = sorted(points - cpt)
         have_pt = sorted(points & cpt)
-        have_dpt = sorted(points & dpt)
-        total_p += len(paras)
-        total_pc += len(paras & cp)
-        total_dc += len(paras & dp)
+        have_ipt = sorted(points & ipt)
+        total_u += len(denom)
+        total_uc += len(denom & cu)
+        total_ui += len(denom & iu)
         total_pts += len(points)
         total_ptc += len(points & cpt)
-        total_dpt += len(points & dpt)
+        total_pti += len(points & ipt)
         print(f"Article {art} ({inv['file']}):")
         print(
-            f"  paragraphs: quoted {', '.join(have_p) or '—'}; "
-            f"demonstrated {', '.join(have_d) or '—'}; "
-            f"missing {', '.join(missing_p) or '—'}"
+            f"  units:  quoted {', '.join(have_u) or '—'}; "
+            f"implementable {', '.join(have_i) or '—'}; "
+            f"missing {', '.join(missing_u) or '—'}"
         )
+        if drop:
+            print(f"  out_of_scope units: {', '.join(sorted(drop))}")
         if points:
             print(
-                f"  points:     quoted {', '.join(have_pt) or '—'}; "
-                f"demonstrated {', '.join(have_dpt) or '—'}; "
+                f"  points: quoted {', '.join(have_pt) or '—'}; "
+                f"implementable {', '.join(have_ipt) or '—'}; "
                 f"missing {', '.join(missing_pt) or '—'}"
             )
         print()
     print(
-        f"Quoted coverage:       {total_pc}/{total_p} paragraphs, "
+        f"Quoted coverage:         {total_uc}/{total_u} duty-units, "
         f"{total_ptc}/{total_pts} points"
     )
     print(
-        f"Demonstrated coverage: {total_dc}/{total_p} paragraphs, "
-        f"{total_dpt}/{total_pts} points "
-        f"(failure Scenario 'is broken' AND evidence|enforced_by|implemented_at)"
+        f"Implementable (by design): {total_ui}/{total_u} duty-units, "
+        f"{total_pti}/{total_pts} points "
+        f"(failure Scenario 'is broken' AND evidence|enforced_by|implemented_at — "
+        f"design intent, not assurance)"
     )
+    oos_note = f"; {total_oos} unit(s) out_of_scope" if total_oos else ""
     print(
-        f"({total_p} paragraphs as present in sources/, not as published)"
+        f"(duty-units = paragraphs, split into ¶N when multi-subparagraph; "
+        f"from sources/, not as published{oos_note})"
     )
     for w in dem_extra_warnings:
-        print(f"  note: {w}")
+        # rename noise in warnings for display
+        print(f"  note: {w.replace('demonstrated coverage', 'implementable (by design)')}")
 
     # Surface checker warnings so coverage never travels alone (review 5/6)
     if SCHEMA_PATH.is_file():

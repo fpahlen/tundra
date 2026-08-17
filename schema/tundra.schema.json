@@ -199,6 +199,11 @@
                     "description": {
                       "type": "string",
                       "description": "What the artefact shows for this control"
+                    },
+                    "ref": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Optional resolvable pointer (control-pack id, file path, or system name) — reserved for future demonstrated bar"
                     }
                   },
                   "if": {
@@ -517,6 +522,38 @@
         },
         "notes": {
           "type": "string"
+        },
+        "out_of_scope": {
+          "type": "array",
+          "description": "Article/paragraph pairs excluded from coverage denominator (e.g. ESMA/Commission powers not owed by the firm)",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "article"
+            ],
+            "properties": {
+              "article": {
+                "type": "string",
+                "minLength": 1
+              },
+              "paragraph": {
+                "type": "string",
+                "description": "Single paragraph number (e.g. \"8\")"
+              },
+              "paragraphs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Several paragraph numbers under the same article"
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why this unit is not modelled as a firm duty"
+              }
+            }
+          }
         }
       }
     },

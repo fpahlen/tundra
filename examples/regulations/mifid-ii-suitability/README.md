@@ -33,10 +33,11 @@ Core checkers stay instrument-agnostic; this folder only exercises them.
 python3 tools/check_tundra.py --coverage examples/regulations/mifid-ii-suitability/
 ```
 
-| Article | Cited paragraphs (sample) | Often missing / out of scope here |
+| Article | Modelled | out_of_scope (denominator) |
 | --- | --- | --- |
-| 25 | 1–6 | 7 (mortgage-bond carve-out), 8–11 (delegated acts / ESMA guidelines mandates) |
+| 25 | duty-units under paras 1–6 (multi-subparagraph split where present) | 7 (mortgage cross-ref), 8 (Commission), 9–11 (ESMA) |
 
+Coverage uses **duty-units** (paragraphs split on unnumbered subparagraphs) and reports **implementable (by design)** — not assurance.  
 Do **not** treat this folder as “full MiFID II Art. 25 compliance mapping.”  
 Level 2 (e.g. Delegated Regulation (EU) 2017/565 Art. 54) is **not** cited here — separate instrument if added later.
 

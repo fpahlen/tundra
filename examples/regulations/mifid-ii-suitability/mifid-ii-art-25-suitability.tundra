@@ -15,6 +15,16 @@ regulation:
     Partial Art. 25 suitability/appropriateness slice — not full MiFID II.
     Level 2 detail (e.g. Delegated Regulation (EU) 2017/565 Art. 54) is a
     separate instrument and is not cited in this model.
+  out_of_scope:
+    - article: "25"
+      paragraph: "7"
+      reason: "Mortgage-bond / residential credit cross-reference carve-out — not modelled in this slice"
+    - article: "25"
+      paragraph: "8"
+      reason: "Commission power to adopt delegated acts — not a firm duty"
+    - article: "25"
+      paragraphs: ["9", "10", "11"]
+      reason: "ESMA guidelines mandates/discretion — not firm duties"
 
 roles:
   - Investment firm

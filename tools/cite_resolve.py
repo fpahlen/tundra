@@ -727,6 +727,52 @@ def quote_in_span(quote: str, span: str) -> bool:
     return nq in ne
 
 
+def parse_subparagraph_spans(para_body: str) -> dict[str, str]:
+    """
+    Map unnumbered subparagraph ordinals ('1','2',…) within one paragraph body.
+
+    EU-style articles often pack several duties into one numbered paragraph as
+    blank-line-separated prose blocks. Point lists ((a)/(i)/…) are excluded —
+    those are tracked as points. Returns {} when there is not more than one
+    prose subparagraph (no multi-duty split).
+    """
+    if not para_body or not str(para_body).strip():
+        return {}
+    blocks = re.split(r"\n\s*\n+", str(para_body).strip())
+    out: dict[str, str] = {}
+    n = 0
+    for raw in blocks:
+        b = raw.strip()
+        if not b:
+            continue
+        if _POINT_RE.match(b):
+            continue
+        n += 1
+        out[str(n)] = b
+    if n <= 1:
+        return {}
+    return out
+
+
+def subparagraph_unit_keys(pnum: str, para_body: str) -> set[str]:
+    """Coverage units for a paragraph: multi-subpara keys '6¶2' or bare '6'."""
+    subs = parse_subparagraph_spans(para_body)
+    if len(subs) > 1:
+        return {f"{pnum}¶{k}" for k in subs}
+    return {pnum}
+
+
+def resolve_quote_subparagraph(para_body: str, quote: str) -> str | None:
+    """Ordinal of the unnumbered subparagraph containing quote, if multi-split."""
+    subs = parse_subparagraph_spans(para_body)
+    if not subs:
+        return None
+    for k, body in subs.items():
+        if quote_in_span(quote, body):
+            return k
+    return None
+
+
 def elision_gap_too_large(quote: str, span: str) -> bool:
     """True if ... fragments leave a large gap in the span (splice risk)."""
     nq = normalise_legal(quote)
@@ -1111,8 +1157,10 @@ def check_provenance(
 
 
 def enumerate_source_coverage(sources_dir: Path) -> dict[str, dict[str, Any]]:
-    """article -> {paragraphs: set, points: set, file: name}
+    """article -> {paragraphs, units, points, file, bodies}
 
+    units: paragraph-level coverage keys with multi-duty split ('6¶1', '6¶2')
+    when a paragraph has multiple unnumbered subparagraphs; else bare '6'.
     points includes nested path keys (e.g. 'a', 'a/v', 'a/ii').
     """
     out: dict[str, dict[str, Any]] = {}
@@ -1130,14 +1178,70 @@ def enumerate_source_coverage(sources_dir: Path) -> dict[str, dict[str, Any]]:
             art = str(int(m.group(1)))
         spans = parse_paragraph_spans(text)
         points: set[str] = set()
-        for body in spans.values():
+        units: set[str] = set()
+        for pnum, body in spans.items():
             points |= set(parse_nested_point_spans(body).keys())
+            units |= subparagraph_unit_keys(pnum, body)
         out[art] = {
             "paragraphs": set(spans.keys()),
+            "units": units,
+            "bodies": spans,
             "points": points,
             "file": p.name,
         }
     return out
+
+
+def parse_out_of_scope(reg: dict[str, Any] | None) -> set[tuple[str, str]]:
+    """Return set of (article, paragraph) pairs declared out of model scope."""
+    out: set[tuple[str, str]] = set()
+    if not isinstance(reg, dict):
+        return out
+    raw = reg.get("out_of_scope")
+    if not isinstance(raw, list):
+        return out
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        art = item.get("article")
+        if not isinstance(art, str) or not art.strip():
+            continue
+        art_s = re.sub(r"[^\d]", "", art.strip()) or art.strip()
+        if art_s.isdigit():
+            art_s = str(int(art_s))
+        para = item.get("paragraph")
+        paras = item.get("paragraphs")
+        keys: list[str] = []
+        if isinstance(para, str) and para.strip():
+            keys.append(para.strip())
+        if isinstance(paras, list):
+            for p in paras:
+                if isinstance(p, str) and p.strip():
+                    keys.append(p.strip())
+                elif isinstance(p, (int, float)):
+                    keys.append(str(int(p)))
+        for k in keys:
+            pnum, _path = parse_paragraph_path(k)
+            if pnum:
+                out.add((art_s, pnum))
+            else:
+                out.add((art_s, k))
+    return out
+
+
+def units_excluded_by_out_of_scope(
+    units: set[str], oos: set[tuple[str, str]], article: str
+) -> set[str]:
+    """Drop coverage units whose paragraph is listed out_of_scope for article."""
+    if not oos:
+        return set()
+    drop: set[str] = set()
+    for u in units:
+        # unit is '6' or '6¶2'
+        pnum = u.split("¶", 1)[0]
+        if (article, pnum) in oos:
+            drop.add(u)
+    return drop
 
 
 def cites_from_models(model_paths: list[Path], yaml) -> list[dict[str, str]]:

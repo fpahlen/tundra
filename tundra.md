@@ -128,13 +128,15 @@ The checker (`tools/check_tundra.py`) verifies more than shape:
 **What green does *not* prove:** that the excerpt is the Official Journal, that the firm complies, or that a human has honestly reviewed the translation.  
 
 - Excerpt `sha256` = **repo drift detection** between stamp and body (re-stamp with `verify_sources.py --write --force` is an event, not proof of law).  
-- Coverage % = **drafting aid**; prefer **demonstrated** coverage (failure Scenario + evidence/`enforced_by`/`implemented_at`).  
-- `translation_review` / `evidence` = **inputs to assurance**, not assurance themselves.
+- Coverage % = **drafting aid**; prefer **implementable (by design)** units (failure Scenario + evidence/`enforced_by`/`implemented_at`) — design intent, not assurance.  
+- `translation_review` / `evidence` = **inputs to assurance**, not assurance themselves.  
+- `regulation.out_of_scope` excludes non-firm addressees (Commission/ESMA powers, etc.) from the denominator.
 
-Coverage report (denominator is `sources/`, not the published instrument):
+Coverage report (denominator is `sources/` duty-units, not the published instrument):
 
-- **Quoted coverage** — paragraphs/points with a quoted cite  
-- **Demonstrated coverage** — those whose Contract is exercised in a Scenario or `enforced_by`
+- **Duty-units** — paragraphs; split into `¶N` when a paragraph has multiple unnumbered subparagraphs (one quote must not credit three duties)  
+- **Quoted coverage** — units/points with a quoted cite  
+- **Implementable (by design)** — those whose Contract has failure Scenario + evidence/`enforced_by`/`implemented_at` (not proof artefacts exist)
 
 ```bash
 python3 tools/check_tundra.py --coverage examples/regulations/<instrument>/

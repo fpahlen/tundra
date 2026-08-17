@@ -524,15 +524,16 @@ def demonstrated_contract_keys(
     data: dict,
 ) -> tuple[set[str], set[str], list[str]]:
     """
-    Stricter "assurance demonstrated" bar (reviews 5–6):
+    Implementable-by-design bar (reviews 5–7):
 
-    A Contract counts as demonstrated only if:
+    A Contract counts toward **implementable (by design)** coverage only if:
     1. A Scenario has a **failure** step for it (`is broken`), AND
     2. It has `evidence:` OR `enforced_by` OR `implemented_at:`, AND
     3. Its failure Scenario's When step is not a duplicate of another Contract's
        (eleven copies of "When it does not comply" count as one test).
 
-    Returns (dem_ids, dem_texts, warnings).
+    This is **not** assurance: description strings do not prove artefacts exist.
+    Returns (impl_ids, impl_texts, warnings).
     """
     warnings: list[str] = []
     # contract_id / text -> list of when-hashes from its break scenarios
@@ -579,7 +580,7 @@ def demonstrated_contract_keys(
         # one warning listing count
         n = sum(len(ks) for ks in shared_whens.values())
         warnings.append(
-            f"demonstrated coverage: {len(shared_whens)} duplicated When condition(s) "
+            f"implementable (by design): {len(shared_whens)} duplicated When condition(s) "
             f"shared across {n} contract failure scenarios "
             f"(identical Whens count as one test — vary the failure condition)"
         )
