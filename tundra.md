@@ -114,7 +114,9 @@ The checker (`tools/check_tundra.py`) verifies more than shape:
 - Regulatory models: every Contract is an object with `cite.article`, **`paragraph` when the excerpt is numbered**, and **`quote` (required)**  
 - Quotes must be **continuous** (no `…` / `...` — splices can drop carve-outs)  
 - **Warning** if the quoted sentence’s paragraph has a scope qualifier (`other than`, `microenterprise`, …) omitted from the quote  
-- **Warning** if a `shall` quote is softened in Contract text (`should` / `where practical` / `consider`)  
+- **Warning** if the quote carves out a population but Contract/`applies_when` omits or re-includes it (`applies_when` is checked, never an off-switch)  
+- **Warning** if a `shall` quote is softened in Contract text (`should` / `where practical` / `consider`) beyond the legal wording  
+- `evidence.type` controlled vocabulary (`training_record`, `board_minutes`, `policy`, …, `other` needs a ≥40-char description)  
 - Sources are bound to **`regulation.id`** only (never another instrument’s excerpts)  
 - Working excerpts should declare trust front-matter, e.g.  
   `<!-- tundra-source: id=… source_url="…" retrieved="YYYY-MM-DD" sha256="…" -->`  

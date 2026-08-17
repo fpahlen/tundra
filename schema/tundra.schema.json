@@ -154,7 +154,8 @@
                   },
                   "date": {
                     "type": "string",
-                    "description": "ISO date"
+                    "minLength": 1,
+                    "description": "ISO date string; unquoted YAML dates are coerced by the checker"
                   }
                 }
               },
@@ -182,12 +183,40 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "minLength": 1,
-                      "description": "Evidence class e.g. training_record, board_minutes, policy, log_export"
+                      "enum": [
+                        "board_minutes",
+                        "training_record",
+                        "policy",
+                        "contract_clause",
+                        "log_export",
+                        "attestation",
+                        "register",
+                        "test_result",
+                        "other"
+                      ],
+                      "description": "Controlled evidence class; use other with a real description"
                     },
                     "description": {
                       "type": "string",
                       "description": "What the artefact shows for this control"
+                    }
+                  },
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "other"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "description"
+                    ],
+                    "properties": {
+                      "description": {
+                        "type": "string",
+                        "minLength": 40
+                      }
                     }
                   }
                 }

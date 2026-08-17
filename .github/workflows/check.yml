@@ -61,8 +61,20 @@ jobs:
         run: |
           out=$(python tools/check_tundra.py examples/regulations/_fixtures/contract-widens-scope.tundra 2>&1 || true)
           echo "$out"
-          echo "$out" | grep -qi 'over-application\|widened\|does not restrict' || {
+          echo "$out" | grep -qi 'over-application\|widened\|does not restrict\|puts that population' || {
             echo "expected contract-vs-quote scope warning"
+            exit 1
+          }
+          out2=$(python tools/check_tundra.py examples/regulations/_fixtures/applies-when-na.tundra 2>&1 || true)
+          echo "$out2"
+          echo "$out2" | grep -qi 'over-application\|does not restrict\|puts that population' || {
+            echo "applies_when: n/a must not silence scope check"
+            exit 1
+          }
+          out3=$(python tools/check_tundra.py examples/regulations/_fixtures/wrong-carveout.tundra 2>&1 || true)
+          echo "$out3"
+          echo "$out3" | grep -qi 'population\|carve-out\|widened\|in scope' || {
+            echo "expected wrong-population carve-out warning"
             exit 1
           }
       - name: Verify excerpt sha256 stamps

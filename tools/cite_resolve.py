@@ -244,6 +244,37 @@ def modality_mismatch_warnings(contract_text: str, quote: str) -> list[str]:
     return out
 
 
+_WIDENING = re.compile(
+    r"("
+    r"\bare in scope\b|"
+    r"\bis in scope\b|"
+    r"\bapplies to all\b|"
+    r"\bregardless of\b|"
+    r"\bincluding microenterprise|"
+    r"\bincluding all\b|"
+    r"\bno exception\b|"
+    r"\bwithout exception\b"
+    r")",
+    re.I,
+)
+
+# Capture population after common carve-out cues in the quote
+_POP_AFTER_CUE = re.compile(
+    r"(?i)\b(?:other than|except for|with the exception of|excluding)\s+"
+    r"([^,.;:\n]{2,60})"
+)
+
+
+def _norm_pop(s: str) -> str:
+    t = normalise_legal(s)
+    t = re.sub(r"\b(the|a|an)\b", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    # light plural normalize
+    if t.endswith("s") and len(t) > 4:
+        t = t[:-1]
+    return t
+
+
 def contract_vs_quote_scope_warnings(
     contract_text: str,
     quote: str,
@@ -251,20 +282,19 @@ def contract_vs_quote_scope_warnings(
 ) -> list[str]:
     """
     When the quote restricts population (other than / microenterprise / …),
-    the Contract text must not silently widen it.
+    the Contract text + applies_when must not silently widen it.
+    applies_when is joined into the comparison (never an unconditional off-switch).
     """
     if not quote or not contract_text:
         return []
+    combined = contract_text
     if applies_when and str(applies_when).strip():
-        return []
+        combined = f"{contract_text} {applies_when}"
     nq = normalise_legal(quote)
-    nct = normalise_legal(contract_text)
-    cues_in_quote = []
-    for m in _SCOPE_CUES.finditer(quote):
-        cues_in_quote.append(m.group(0).strip())
-    if not cues_in_quote:
-        return []
-    def _reflected(cue: str, hay: str) -> bool:
+    nct = normalise_legal(combined)
+    out: list[str] = []
+
+    def _token_reflected(cue: str, hay: str) -> bool:
         c = normalise_legal(cue)
         if c in hay:
             return True
@@ -274,8 +304,30 @@ def contract_vs_quote_scope_warnings(
             return True
         return False
 
-    missing = [c for c in cues_in_quote if not _reflected(c, nct)]
-    # de-dupe
+    # 1) Population phrases after carve-out cues must appear in Contract/applies_when
+    for m in _POP_AFTER_CUE.finditer(quote):
+        pop = m.group(1).strip()
+        # trim trailing junk
+        pop = re.split(r"\s+(?:shall|must|may|should)\b", pop, maxsplit=1)[0].strip()
+        if len(pop) < 3:
+            continue
+        npop = _norm_pop(pop)
+        if npop and npop not in _norm_pop(combined) and npop not in nct:
+            # also try last content words
+            words = npop.split()
+            if len(words) >= 2:
+                tail = " ".join(words[-2:])
+            else:
+                tail = npop
+            if tail not in nct and not _token_reflected(tail, nct):
+                out.append(
+                    f"quote carves out population {pop!r} but Contract/applies_when "
+                    f"does not mention that population — risk of wrong or missing carve-out"
+                )
+
+    # 2) Cue tokens in quote should still appear somewhere (with singular/plural)
+    cues_in_quote = [m.group(0).strip() for m in _SCOPE_CUES.finditer(quote)]
+    missing = [c for c in cues_in_quote if not _token_reflected(c, nct)]
     seen: set[str] = set()
     missing_u = []
     for c in missing:
@@ -283,14 +335,32 @@ def contract_vs_quote_scope_warnings(
         if k not in seen:
             seen.add(k)
             missing_u.append(c)
-    out: list[str] = []
     if missing_u:
         sample = ", ".join(repr(u) for u in missing_u[:3])
         out.append(
-            f"quote restricts scope ({sample}) but Contract text does not restrict "
-            f"similarly — risk of over-application (add carve-out to text or applies_when:)"
+            f"quote restricts scope ({sample}) but Contract/applies_when does not "
+            f"restrict similarly — risk of over-application"
         )
-    # Explicit widening
+
+    # 3) Explicit widening: quote carves out pop P, Contract claims P is in scope / including P
+    for mpop in re.finditer(r"(?i)other than\s+([^,.;:\n]{2,50})", quote):
+        pop = mpop.group(1).strip()
+        pop = re.split(r"\s+(?:shall|must|may|should)\b", pop, maxsplit=1)[0].strip()
+        npop = _norm_pop(pop)
+        if not npop:
+            continue
+        # Contract says the carved-out population is in scope / applies / including
+        if re.search(
+            rf"(?i)\b{re.escape(npop)}s?\b.{{0,40}}\b(in scope|apply|applies|included|including)\b",
+            combined,
+        ) or re.search(
+            rf"(?i)\b(in scope|including|applies to)\b.{{0,40}}\b{re.escape(npop)}s?\b",
+            combined,
+        ):
+            out.append(
+                f"quote excludes {pop!r} but Contract/applies_when puts that population "
+                f"back in scope — population widened vs legal text"
+            )
     if re.search(r"\bother than\b", nq) and re.search(
         r"\bincluding\b.*\bmicroenterprise", nct
     ):
@@ -299,7 +369,15 @@ def contract_vs_quote_scope_warnings(
                 "quote excludes a population (other than …) but Contract text includes "
                 "microenterprises — population widened vs legal text"
             )
-    return out
+
+    # de-dupe messages
+    uniq: list[str] = []
+    seen_m: set[str] = set()
+    for msg in out:
+        if msg not in seen_m:
+            seen_m.add(msg)
+            uniq.append(msg)
+    return uniq
 
 
 def _dir_declares_instrument(sources_dir: Path, regulation_id: str) -> bool:

@@ -22,6 +22,8 @@
 - Review 5 follow-through: Contract-vs-quote **scope** warn; evidence required for non-runtime
   classes; stricter **demonstrated** coverage; soft-modal false-positive fix; `implemented_at` /
   `applies_when`; noisy re-stamp (`--force`); README “What you get”
+- Review 6: `applies_when` joins scope check (not off-switch); population-after-cue + widening;
+  `evidence.type` enum; date coerce; collapsed warning counts; distinct When for demonstrated
 - **`prompts/extract-regulation.md`** — lawyerish → Tundra + cite (any instrument)
 - **Sample only:** `examples/regulations/dora/` (partial Art. 5–6 + pure 5(4) slice)
 - **`models/`** reserved for user translations (no house instrument models)

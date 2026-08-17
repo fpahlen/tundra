@@ -1,0 +1,36 @@
+# Wrong population after other than — must warn
+
+tundra: wrong-carveout-fixture
+kind: obligations
+
+regulation:
+  id: DORA
+  instrument: "Regulation (EU) 2022/2554"
+  eli: "https://eur-lex.europa.eu/eli/reg/2022/2554/oj"
+  edition: "OJ L 333, 27.12.2022"
+
+roles:
+  - Financial entity
+
+contracts:
+  - id: wrong-pop
+    text: >
+      Financial entities, other than large banking groups, must establish a role
+      to monitor ICT third-party arrangements. Microenterprises are in scope.
+    implement_as: recorded_control
+    evidence:
+      - type: policy
+        description: Written monitoring role covering all entity sizes including micros
+    cite:
+      - article: "5"
+        paragraph: "3"
+        quote: "Financial entities, other than microenterprises, shall establish a role in order to monitor the arrangements concluded with ICT third-party service providers on the use of ICT services"
+    translation_review:
+      status: unreviewed
+
+scenarios:
+  - name: "Error"
+    steps:
+      - Given in scope
+      - When no monitoring role
+      - Then the contract [wrong-pop] is broken

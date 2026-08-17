@@ -97,6 +97,21 @@ def find_models() -> list[Path]:
     return unique
 
 
+def _coerce_yaml_dates(obj):
+    """YAML unquoted dates become datetime.date; schema expects strings."""
+    import datetime as _dt
+
+    if isinstance(obj, dict):
+        return {k: _coerce_yaml_dates(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_coerce_yaml_dates(v) for v in obj]
+    if isinstance(obj, _dt.datetime):
+        return obj.date().isoformat()
+    if isinstance(obj, _dt.date):
+        return obj.isoformat()
+    return obj
+
+
 def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -110,6 +125,8 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
         return ["empty document"], warnings
     if not isinstance(data, dict):
         return ["root must be a mapping"], warnings
+
+    data = _coerce_yaml_dates(data)
 
     validator = jsonschema.Draft202012Validator(schema)
     for err in sorted(validator.iter_errors(data), key=lambda e: list(e.path)):
@@ -185,6 +202,8 @@ def check_file(path: Path, schema: dict, yaml, jsonschema) -> tuple[list[str], l
     warnings.extend(check_expires_handlers(processes, expires_states))
     warnings.extend(check_vagueness(data, roles, state_names))
     warnings.extend(check_implement_as_hints(data))
+    _ids, _texts, dem_w = demonstrated_contract_keys(data)
+    warnings.extend(dem_w)
 
     pe, pw = check_provenance(data, path, ROOT)
     errors.extend(pe)
@@ -225,13 +244,16 @@ def run_coverage(target: Path, yaml) -> int:
 
     # Per-model demonstrated contracts
     dem_by_model: dict[str, tuple[set[str], set[str]]] = {}
+    dem_extra_warnings: list[str] = []
     for mp in model_paths:
         try:
             data = yaml.safe_load(mp.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
             continue
         if isinstance(data, dict):
-            dem_by_model[str(mp)] = demonstrated_contract_keys(data)
+            ids, texts, dw = demonstrated_contract_keys(data)
+            dem_by_model[str(mp)] = (ids, texts)
+            dem_extra_warnings.extend(dw)
 
     quoted = [c for c in cited if (c.get("quote") or "").strip()]
     bare = [c for c in cited if not (c.get("quote") or "").strip()]
@@ -322,22 +344,73 @@ def run_coverage(target: Path, yaml) -> int:
     print(
         f"({total_p} paragraphs as present in sources/, not as published)"
     )
+    for w in dem_extra_warnings:
+        print(f"  note: {w}")
 
-    # Surface checker warnings so coverage never travels alone (review 5)
+    # Surface checker warnings so coverage never travels alone (review 5/6)
     if SCHEMA_PATH.is_file():
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         import jsonschema as _js
+        from collections import Counter
 
         warn_n = err_n = 0
+        cats: Counter[str] = Counter()
         for mp in model_paths:
             errs, warns = check_file(mp, schema, yaml, _js)
             err_n += len(errs)
             warn_n += len(warns)
+            for w in warns:
+                if "unreviewed" in w.lower():
+                    cats["unreviewed translation"] += 1
+                elif "over-application" in w.lower() or "scope" in w.lower():
+                    cats["scope / carve-out"] += 1
+                elif "modality" in w.lower():
+                    cats["modality mismatch"] += 1
+                elif "evidence" in w.lower():
+                    cats["missing evidence"] += 1
+                elif "enforced_by" in w.lower():
+                    cats["enforced_by"] += 1
+                else:
+                    cats["other"] += 1
         print(
             f"\nModel check signals on these files: {err_n} error(s), {warn_n} warning(s) "
             f"(coverage is a drafting aid, not assurance by itself)"
         )
+        if cats:
+            top = ", ".join(f"{n}× {k}" for k, n in cats.most_common(5))
+            print(f"  top categories: {top}")
     return 0
+
+
+def _collapse_messages(messages: list[str], kind: str) -> list[str]:
+    """Collapse near-duplicate messages into counts (e.g. 11× unreviewed)."""
+    from collections import Counter
+
+    def key(msg: str) -> str:
+        # strip contract[n] / id '…' prefixes for grouping
+        m = re.sub(r"contract\[\d+\](\s+id\s+'[^']+')?:?\s*", "contract: ", msg)
+        m = re.sub(r"\bid '[^']+'\b", "id '*'", m)
+        return m
+
+    counts = Counter(key(m) for m in messages)
+    # preserve first-seen order
+    seen: list[str] = []
+    for m in messages:
+        k = key(m)
+        if k not in seen:
+            seen.append(k)
+    out: list[str] = []
+    for k in seen:
+        n = counts[k]
+        if n == 1:
+            # recover one original for readability
+            for m in messages:
+                if key(m) == k:
+                    out.append(f"  {kind}: {m}")
+                    break
+        else:
+            out.append(f"  {kind}: ({n}×) {k}")
+    return out
 
 
 def print_report(display: object, errors: list[str], warnings: list[str]) -> None:
@@ -348,10 +421,10 @@ def print_report(display: object, errors: list[str], warnings: list[str]) -> Non
         print(f"FAIL {display}")
     else:
         print(f"OK  {display} (with warnings)")
-    for e in errors:
-        print(f"  error: {e}")
-    for w in warnings:
-        print(f"  warning: {w}")
+    for line in _collapse_messages(errors, "error"):
+        print(line)
+    for line in _collapse_messages(warnings, "warning"):
+        print(line)
 
 
 def main(argv: list[str] | None = None) -> int:

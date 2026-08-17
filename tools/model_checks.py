@@ -430,7 +430,7 @@ def check_enforced_by_usage(
             continue
         impl = impl_by_id.get(cid)
         # Non-runtime classes are not expected on Process enforced_by
-        if impl in _NON_RUNTIME or impl in ("proportionality", "permission"):
+        if impl in _SKIP_ENFORCED_BY_NAG:
             continue
         warnings.append(
             f"contract id {cid!r}: never listed in any Process enforced_by "
@@ -513,32 +513,76 @@ def check_role_usage(
     return warnings
 
 
-def demonstrated_contract_keys(data: dict) -> tuple[set[str], set[str]]:
+def _norm_when(step: str) -> str:
+    s = step.strip().lower()
+    s = re.sub(r"^when\s+", "", s)
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def demonstrated_contract_keys(
+    data: dict,
+) -> tuple[set[str], set[str], list[str]]:
     """
-    Stricter "assurance demonstrated" bar (review 5):
+    Stricter "assurance demonstrated" bar (reviews 5–6):
 
     A Contract counts as demonstrated only if:
     1. A Scenario has a **failure** step for it (`is broken`), AND
-    2. It has `evidence:` OR appears in some Process `enforced_by` OR has `implemented_at:`.
+    2. It has `evidence:` OR `enforced_by` OR `implemented_at:`, AND
+    3. Its failure Scenario's When step is not a duplicate of another Contract's
+       (eleven copies of "When it does not comply" count as one test).
 
-    Mere Scenario mention of the id without a break step is not enough (that made
-    demonstrated == quoted by construction).
+    Returns (dem_ids, dem_texts, warnings).
     """
+    warnings: list[str] = []
+    # contract_id / text -> list of when-hashes from its break scenarios
+    break_whens: dict[str, list[str]] = {}
     broken_texts: set[str] = set()
     broken_ids: set[str] = set()
+
     for scen in data.get("scenarios") or []:
         if not isinstance(scen, dict):
             continue
+        when_step = ""
+        break_ids: list[str] = []
+        break_texts: list[str] = []
         for step in scen.get("steps") or []:
             if not isinstance(step, str):
                 continue
-            low = step.lower()
+            st = step.strip()
+            if re.match(r"(?i)^when\b", st):
+                when_step = st
+            low = st.lower()
             if "is broken" not in low:
                 continue
-            for m in CONTRACT_QUOTE.finditer(step):
+            for m in CONTRACT_QUOTE.finditer(st):
+                break_texts.append(m.group(1))
                 broken_texts.add(m.group(1))
-            for m in CONTRACT_ID_REF.finditer(step):
+            for m in CONTRACT_ID_REF.finditer(st):
+                break_ids.append(m.group(1))
                 broken_ids.add(m.group(1))
+        wh = _norm_when(when_step) if when_step else ""
+        for cid in break_ids:
+            break_whens.setdefault(f"id:{cid}", []).append(wh)
+        for tx in break_texts:
+            break_whens.setdefault(f"text:{tx}", []).append(wh)
+
+    # Detect shared When conditions across different contracts
+    when_to_keys: dict[str, set[str]] = {}
+    for key, whens in break_whens.items():
+        for w in whens:
+            if not w:
+                continue
+            when_to_keys.setdefault(w, set()).add(key)
+    shared_whens = {w: ks for w, ks in when_to_keys.items() if len(ks) > 1}
+    if shared_whens:
+        # one warning listing count
+        n = sum(len(ks) for ks in shared_whens.values())
+        warnings.append(
+            f"demonstrated coverage: {len(shared_whens)} duplicated When condition(s) "
+            f"shared across {n} contract failure scenarios "
+            f"(identical Whens count as one test — vary the failure condition)"
+        )
 
     enforced: set[str] = set()
     for proc in data.get("processes") or []:
@@ -550,13 +594,11 @@ def demonstrated_contract_keys(data: dict) -> tuple[set[str], set[str]]:
 
     dem_ids: set[str] = set()
     dem_texts: set[str] = set()
+    # Contracts that only share a When with others: still allow one winner per When
+    claimed_whens: set[str] = set()
+
     for c in data.get("contracts") or []:
         if not isinstance(c, dict):
-            # bare string contracts cannot carry evidence/implemented_at
-            ct = contract_text(c)
-            if ct and ct in broken_texts:
-                # still need evidence/enforced — bare string has neither → not demonstrated
-                pass
             continue
         ct = contract_text(c)
         cid = contract_id(c)
@@ -566,14 +608,42 @@ def demonstrated_contract_keys(data: dict) -> tuple[set[str], set[str]]:
         has_evidence = bool(c.get("evidence"))
         has_enforced = bool(cid and cid in enforced)
         has_impl_at = bool(
-            isinstance(c.get("implemented_at"), str) and c.get("implemented_at", "").strip()
+            isinstance(c.get("implemented_at"), str)
+            and str(c.get("implemented_at", "")).strip()
         )
         has_hook = has_evidence or has_enforced or has_impl_at
-        if has_break and has_hook:
-            if cid:
-                dem_ids.add(cid)
-            dem_texts.add(ct)
-    return dem_ids, dem_texts
+        if not (has_break and has_hook):
+            continue
+        # unique When: prefer contract's own when list
+        keys = []
+        if cid:
+            keys.extend(break_whens.get(f"id:{cid}", []))
+        keys.extend(break_whens.get(f"text:{ct}", []))
+        unique_when = None
+        for w in keys:
+            if w and w not in claimed_whens:
+                unique_when = w
+                break
+            if w and w not in shared_whens:
+                unique_when = w
+                break
+        if keys and all(w in shared_whens for w in keys if w):
+            # all whens shared — only first contract claiming each when gets credit
+            for w in keys:
+                if w and w not in claimed_whens:
+                    unique_when = w
+                    break
+            if unique_when is None:
+                continue
+        if unique_when:
+            claimed_whens.add(unique_when)
+        elif keys:
+            # empty when steps — allow but weak
+            pass
+        if cid:
+            dem_ids.add(cid)
+        dem_texts.add(ct)
+    return dem_ids, dem_texts, warnings
 
 
 def check_expires_handlers(
@@ -610,8 +680,22 @@ def check_state_subjects(state_names: list[str]) -> list[str]:
     return errors
 
 
-_NON_RUNTIME = frozenset(
-    {"recorded_control", "capability", "governance"}
+# Non-process-hook implement_as values
+_NON_RUNTIME = frozenset({"recorded_control", "capability", "governance"})
+_SKIP_ENFORCED_BY_NAG = _NON_RUNTIME | frozenset({"proportionality", "permission"})
+
+_EVIDENCE_TYPES = frozenset(
+    {
+        "board_minutes",
+        "training_record",
+        "policy",
+        "contract_clause",
+        "log_export",
+        "attestation",
+        "register",
+        "test_result",
+        "other",
+    }
 )
 
 
@@ -648,6 +732,23 @@ def check_implement_as_hints(data: dict) -> list[str]:
                     + f": implement_as is {impl!r} but evidence: is empty "
                     f"(non-runtime controls need artefacts a supervisor could ask for)"
                 )
+            else:
+                for j, item in enumerate(ev):
+                    if not isinstance(item, dict):
+                        continue
+                    et = item.get("type")
+                    if et not in _EVIDENCE_TYPES:
+                        warnings.append(
+                            f"contract[{i}] evidence[{j}]: type {et!r} not in "
+                            f"controlled vocabulary {_EVIDENCE_TYPES}"
+                        )
+                    if et == "other":
+                        desc = item.get("description") or ""
+                        if len(str(desc).strip()) < 40:
+                            warnings.append(
+                                f"contract[{i}] evidence[{j}]: type other requires "
+                                f"description ≥ 40 characters (not a mood word)"
+                            )
 
         if impl == "runtime_guard":
             if cid and cid in enforced:
